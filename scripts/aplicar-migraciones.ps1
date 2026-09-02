@@ -80,8 +80,24 @@ $migraciones = @(
     # '20260828000005_registrar_compra.sql',             # aplicada
     # '20260829000001_cerrar_anon_y_rls.sql',            # aplicada
     '20260829000002_auth_migrar_usuarios.sql',
-    '20260829000003_rls_por_rol.sql'
+    '20260829000003_rls_por_rol.sql',
+    '20260901000001_venta_idempotente.sql',
+    '20260902000001_crypt_calificado.sql'
 )
+
+# OJO CON EL ORDEN, Y CON LA ULTIMA:
+#
+# `20260902000001_crypt_calificado.sql` arregla el login, que quedo roto el
+# 29-08: `20260827000002` fijo `search_path = public, pg_temp` en
+# `verificar_usuario`, y pgcrypto vive en el schema `extensions`, asi que la
+# funcion dejo de encontrar `crypt`. Sintoma: 42883 al intentar entrar.
+#
+# Esa migracion detecta sola si `20260829000002` esta aplicada, para saber cual
+# de las dos versiones de `crear_usuario` tiene que reescribir. Por eso va
+# DESPUES de ella en esta lista y no antes.
+#
+# Si el login es lo unico que te urge, se puede aplicar sola: no depende de
+# ninguna de las anteriores.
 
 $dirMigraciones = Join-Path $PSScriptRoot '..\supabase\migrations'
 

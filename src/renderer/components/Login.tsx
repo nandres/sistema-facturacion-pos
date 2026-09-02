@@ -82,12 +82,15 @@ export default function Login({ onLogin }: Props): JSX.Element {
     setError(null);
     try {
       const r = await window.api.usuarios.autenticar(nombre.trim(), password);
-      if (!r.ok) { marcarFallo(r.mensaje); return; }
+      // Un fallo del sistema no es una contraseña equivocada: se muestra, pero
+      // no cuenta como intento. Si no, un problema de base deja al cajero
+      // esperando un minuto entre reintentos que no dependen de él.
+      if (!r.ok) { setError(r.mensaje); return; }
       if (!r.data) { marcarFallo('Usuario o contraseña incorrectos.'); return; }
       setFallidos(0);
       onLogin(r.data);
     } catch {
-      marcarFallo('Error de conexión. Verifique el servidor.');
+      setError('Error de conexión. Verifique el servidor.');
     } finally {
       setCargando(false);
     }

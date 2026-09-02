@@ -21,27 +21,7 @@ import type { Resultado } from '../../shared/types/api';
 import type { DatosTicket, DatosTicketZ } from '../../shared/types/ventas';
 import type { Comercio } from '../../shared/config/comercio';
 import { CANALES } from '../../shared/ipc/canales';
-
-// Aplana cualquier excepción del servicio a un Resultado serializable.
-// Las clases custom (VentaError) pierden su prototipo al cruzar IPC, así
-// que extraemos los campos a primitivas antes de devolver.
-function normalizarError(err: unknown): Resultado<never> {
-  if (err instanceof VentaError) {
-    return {
-      ok: false,
-      codigo: err.codigo,
-      mensaje: err.mensajeUsuario,
-      detalle: err.detalleTecnico,
-    };
-  }
-  const mensaje = err instanceof Error ? err.message : String(err);
-  return {
-    ok: false,
-    codigo: 'UNKNOWN',
-    mensaje: mensaje,
-    detalle: mensaje,
-  };
-}
+import { normalizarError } from './errores';
 
 // Envuelve un handler en el contrato que cruza IPC: si sale bien devuelve
 // { ok: true, data }, y si tira lo loguea y lo aplana con normalizarError().
