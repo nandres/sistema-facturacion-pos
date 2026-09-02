@@ -1,0 +1,29 @@
+version: 2
+
+# Electron viaja dentro del instalador aunque figure en devDependencies: sus
+# CVE le llegan al usuario final. Con la version 31 fuera de soporte, esto es
+# lo que va a avisar cuando haya que saltar, en vez de enterarse por un
+# `npm audit` que alguien corra por casualidad.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    # Un PR por semana con todo lo menor junto se revisa; veinte PR sueltos no
+    # se revisan. Los saltos de version mayor van solos, porque cada uno pide
+    # su propia prueba en la maquina de caja.
+    groups:
+      menores:
+        patterns: ['*']
+        update-types: [minor, patch]
+    commit-message:
+      prefix: 'chore(deps)'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'chore(ci)'

@@ -1,0 +1,54 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Estado local de la CLI de Supabase.
+#
+# NO es código fuente: son los datos del proyecto vinculado en esta máquina.
+# `project-ref` y `linked-project.json` traen el identificador del proyecto y
+# `pooler-url` la cadena de conexión a la base. Mientras `anon` siga con
+# permisos y falte RLS (ver AUDITORIA.md, C-02), publicar eso es publicar la
+# dirección exacta a la que apuntar. Va ignorado aunque el repo sea privado.
+supabase/.temp/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editors / IDEs
+#
+# .vscode/ va ignorado salvo la configuracion compartida: settings.json apaga
+# el falso error de "@tailwind" y fija CRLF, y extensions.json recomienda las
+# dos extensiones sin las que el proyecto se ve mal. Eso conviene que lo tenga
+# todo el que abra el repo; el resto (launch.json, estado local) no.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Node / build output
+node_modules/
+dist/
+out/
+
+# Logs locales
+logs/*.log
+
+# Backups / AI
+.claude/
+.ui_backup*/
+.ui_backup2*/
+
+# Obsidian.
+#
+# La configuracion de la boveda es estado local del editor: paneles abiertos,
+# tema, plugins. Cambia sola cada vez que se abre el programa. Iba ignorado
+# solo `workspace.json` de la raiz, pero Obsidian dejo carpetas `.obsidian`
+# tambien en subcarpetas, asi que va el directorio entero en cualquier nivel.
+.obsidian/
+
+# Backups locales y restos de la migracion desde DACS (no versionar)
+Backup/

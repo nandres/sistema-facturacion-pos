@@ -1,0 +1,481 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SISTEMA DE DISENO — terminal de retail
+
+   El lenguaje es el de una aplicacion de escritorio de gestion, no el de una
+   pagina web: barra de menu arriba, barra de estado abajo, cajas con titulo
+   en el borde, grillas con lineas visibles, y UNA SOLA FAMILIA tipografica
+   en toda la interfaz.
+
+   Decisiones que sostienen el resto:
+
+   - ESQUINAS RECTAS. El radio es 0 en todos lados menos en los indicadores
+     redondos. Una caja con esquinas redondeadas se lee como tarjeta; una con
+     esquinas rectas se lee como campo de formulario, que es lo que es.
+   - SIN SOMBRAS salvo modales. En una pantalla densa la sombra es ruido; el
+     relieve se hace con un borde de 1px mas oscuro abajo.
+   - UNA SOLA TIPOGRAFIA. La interfaz entera usa la familia de sistema. Las
+     cifras no cambian de familia para alinearse: alcanza con `tabular-nums`,
+     que fija el ancho de los digitos dentro de la misma fuente. Mezclar una
+     monoespaciada con la de interfaz partia la pantalla en dos.
+     La unica excepcion es la vista previa del ticket, que imita el papel
+     termico de 32 columnas y por eso si va monoespaciada.
+   - UN color de accion por significado, no por decoracion: azul confirma y
+     selecciona, rojo destruye, ambar advierte. Sin verde: el acento del
+     sistema es el azul, y un boton verde en medio de una pantalla azul se
+     lee como de otra aplicacion.
+   - DENSIDAD. Alto de fila 22px, controles de 24px. El cajero mira la pantalla
+     a un metro y necesita ver 20 lineas, no 8.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root, html {
+  /* Superficies */
+  --ui-fondo: #eef0f3;
+  --ui-sup: #ffffff;
+  --ui-sup-alt: #f7f8fa;
+  --ui-barra: #dee2e8;
+  --ui-barra-alta: #e9ecf1;
+  --ui-hundido: #e4e7ec;
+
+  /* Bordes: el fuerte separa zonas, el normal separa celdas */
+  --ui-bd: #c5cad3;
+  --ui-bd-fuerte: #9aa2ae;
+
+  /* Texto */
+  --ui-tx: #10141b;
+  --ui-tx-sec: #39414e;
+  --ui-tx-ten: #5f6875;
+  --ui-tx-inv: #ffffff;
+
+  /* Seleccion y foco: el azul de gestion de toda la vida */
+  --ui-sel: #1f4e79;
+  --ui-sel-suave: #d6e4f0;
+  --ui-foco: #2f6fad;
+
+  /* Semaforo. Azul confirma, rojo destruye, ambar advierte.
+     `ok` es el azul vivo de la accion principal --cobrar, guardar--, un paso
+     mas brillante que el marino de seleccion para que el boton mas importante
+     de cada pantalla destaque sin salirse de la paleta. */
+  --ui-ok: #1a5f9e;
+  --ui-ok-suave: #dce9f6;
+  --ui-peligro: #a52834;
+  --ui-peligro-suave: #f7dcdf;
+  --ui-alerta: #97600a;
+  --ui-alerta-suave: #fbeecb;
+  --ui-info: #14538f;
+  --ui-info-suave: #dbe8f5;
+
+  /* Solo para la vista previa del ticket: imita el papel termico de 32
+     columnas, donde el ancho fijo es parte de lo que se esta mostrando.
+     La interfaz NO la usa. */
+  --ui-mono: 'Roboto Mono', 'JetBrains Mono', ui-monospace, 'Cascadia Mono',
+    'Consolas', 'DejaVu Sans Mono', monospace;
+  --ui-ui: 'Segoe UI', system-ui, -apple-system, 'Liberation Sans', sans-serif;
+
+  --bg-scrollbar: #e4e7ec;
+  --bg-scrollbar-thumb: #9aa2ae;
+
+  /* Puente con la nomenclatura vieja: las pantallas que todavia usan tok-*
+     siguen funcionando y se ven dentro del mismo sistema. */
+  --bg-primary: var(--ui-fondo);
+  --bg-secondary: var(--ui-sup);
+  --bg-tertiary: var(--ui-barra);
+  --bg-element: var(--ui-barra-alta);
+  --border-default: var(--ui-bd);
+  --border-subtle: var(--ui-bd);
+  --text-primary: var(--ui-tx);
+  --text-secondary: var(--ui-tx-sec);
+  --text-muted: var(--ui-tx-ten);
+  --nav-bg: var(--ui-barra);
+  --nav-border: var(--ui-bd-fuerte);
+  --panel-bg: var(--ui-sup);
+  --header-bg: var(--ui-barra);
+}
+
+/* Variante oscura. Existe porque una caja con la persiana baja a las 6 de la
+   mañana es otra cosa que una a mediodia, y los sistemas de POS serios la
+   traen. Mismos roles, distinta luminancia: no se reacomoda nada. */
+html.tema-claro {
+  --ui-fondo: #1b1f26;
+  --ui-sup: #232830;
+  --ui-sup-alt: #272d36;
+  --ui-barra: #2e343e;
+  --ui-barra-alta: #39404b;
+  --ui-hundido: #1a1e25;
+
+  --ui-bd: #414956;
+  --ui-bd-fuerte: #5a6474;
+
+  --ui-tx: #eef1f5;
+  --ui-tx-sec: #c0c7d1;
+  --ui-tx-ten: #8b94a1;
+  --ui-tx-inv: #10141b;
+
+  --ui-sel: #2f6fad;
+  --ui-sel-suave: #24384c;
+  --ui-foco: #63a2dd;
+
+  --ui-ok: #3d84c4;
+  --ui-ok-suave: #1c3348;
+  --ui-peligro: #e2707c;
+  --ui-peligro-suave: #3d2126;
+  --ui-alerta: #ddab4e;
+  --ui-alerta-suave: #3a2f18;
+  --ui-info: #6aa9e0;
+  --ui-info-suave: #1d2f42;
+
+  --bg-scrollbar: #1a1e25;
+  --bg-scrollbar-thumb: #5a6474;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--ui-ui);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  background-color: var(--ui-fondo);
+  color: var(--ui-tx);
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+input, textarea {
+  user-select: text;
+}
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg-scrollbar); }
+::-webkit-scrollbar-thumb {
+  background: var(--bg-scrollbar-thumb);
+  border: 3px solid var(--bg-scrollbar);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ui-tx-ten); }
+::-webkit-scrollbar-corner { background: var(--bg-scrollbar); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Cifras. Todo lo que sea plata, codigo o cantidad va con esta clase. NO
+   cambia de familia: usa la misma que el resto de la interfaz y se apoya en
+   `tabular-nums`, que hace que todos los digitos midan lo mismo. Las columnas
+   quedan alineadas al pixel igual, y la pantalla no se ve escrita con dos
+   tipografias distintas.
+   ───────────────────────────────────────────────────────────────────────── */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.01em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CAJA CON TITULO. El titulo se recuesta sobre el borde superior, como el
+   group box de toda aplicacion de gestion. Es lo que mas separa esto de una
+   tarjeta web: agrupa sin flotar.
+   ───────────────────────────────────────────────────────────────────────── */
+.ui-caja {
+  border: 1px solid var(--ui-bd-fuerte);
+  background: var(--ui-sup);
+  position: relative;
+}
+
+.ui-caja > .ui-caja-tit {
+  position: absolute;
+  top: -7px;
+  left: 8px;
+  padding: 0 5px;
+  background: var(--ui-fondo);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-tx-ten);
+  line-height: 1;
+}
+
+/* Sobre superficie blanca el titulo tiene que taparse con blanco, no con el
+   fondo de la pagina. */
+.ui-sup .ui-caja > .ui-caja-tit,
+.ui-caja .ui-caja > .ui-caja-tit { background: var(--ui-sup); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BARRAS DE CHROME. Menu arriba, estado abajo, encabezados de seccion.
+   ───────────────────────────────────────────────────────────────────────── */
+.ui-barra {
+  background: var(--ui-barra);
+  border-bottom: 1px solid var(--ui-bd-fuerte);
+}
+
+.ui-barra-pie {
+  background: var(--ui-barra);
+  border-top: 1px solid var(--ui-bd-fuerte);
+}
+
+/* Titulo de seccion: la franja oscura que encabeza cada modulo. */
+.ui-titulo-modulo {
+  background: var(--ui-sel);
+  color: var(--ui-tx-inv);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   GRILLA DE DATOS. Lineas visibles, encabezado fijo, cebra, fila
+   seleccionada en azul pleno. Numeros a la derecha, texto a la izquierda.
+   ───────────────────────────────────────────────────────────────────────── */
+.ui-grilla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.ui-grilla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--ui-barra-alta);
+  color: var(--ui-tx-sec);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 4px 6px;
+  white-space: nowrap;
+  border-right: 1px solid var(--ui-bd);
+  box-shadow: inset 0 -2px 0 var(--ui-bd-fuerte);
+}
+
+.ui-grilla thead th:last-child { border-right: 0; }
+.ui-grilla thead th.der { text-align: right; }
+.ui-grilla thead th.cen { text-align: center; }
+
+.ui-grilla tbody td {
+  padding: 2px 6px;
+  border-right: 1px solid var(--ui-bd);
+  border-bottom: 1px solid var(--ui-bd);
+  height: 22px;
+  color: var(--ui-tx);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-grilla tbody td:last-child { border-right: 0; }
+.ui-grilla tbody tr:nth-child(even) td { background: var(--ui-sup-alt); }
+.ui-grilla tbody tr:hover td { background: var(--ui-sel-suave); }
+
+.ui-grilla tbody tr.sel td,
+.ui-grilla tbody tr.sel:hover td {
+  background: var(--ui-sel);
+  color: var(--ui-tx-inv);
+  border-bottom-color: var(--ui-sel);
+  border-right-color: rgba(255, 255, 255, 0.18);
+}
+
+/* En la fila seleccionada todo el texto se invierte, incluidos los tonos
+   semanticos: si no, el rojo sobre azul queda ilegible. */
+.ui-grilla tbody tr.sel td * { color: var(--ui-tx-inv) !important; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CONTROLES
+   ───────────────────────────────────────────────────────────────────────── */
+.ui-campo {
+  height: 24px;
+  padding: 0 6px;
+  background: var(--ui-sup);
+  border: 1px solid var(--ui-bd-fuerte);
+  border-top-color: var(--ui-tx-ten);
+  color: var(--ui-tx);
+  outline: none;
+  width: 100%;
+}
+
+.ui-campo:focus {
+  border-color: var(--ui-foco);
+  box-shadow: inset 0 0 0 1px var(--ui-foco);
+}
+
+.ui-campo:disabled {
+  background: var(--ui-hundido);
+  color: var(--ui-tx-ten);
+}
+
+.ui-campo::placeholder { color: var(--ui-tx-ten); font-style: italic; }
+
+/* Rotulo arriba del control, en versalita. */
+.ui-rotulo {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ui-tx-ten);
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.ui-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 10px;
+  background: var(--ui-barra-alta);
+  color: var(--ui-tx);
+  border: 1px solid var(--ui-bd-fuerte);
+  /* El borde inferior mas oscuro es todo el relieve que hace falta. */
+  border-bottom-width: 2px;
+  border-bottom-color: var(--ui-tx-ten);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ui-boton:hover:not(:disabled) { background: var(--ui-barra); }
+.ui-boton:active:not(:disabled) {
+  border-bottom-width: 1px;
+  margin-top: 1px;
+  background: var(--ui-hundido);
+}
+.ui-boton:focus-visible { outline: 2px solid var(--ui-foco); outline-offset: 1px; }
+.ui-boton:disabled { color: var(--ui-tx-ten); background: var(--ui-hundido); cursor: default; border-bottom-width: 1px; }
+
+.ui-boton.pri { background: var(--ui-ok); border-color: var(--ui-ok); border-bottom-color: rgba(0,0,0,0.35); color: #fff; }
+.ui-boton.pri:hover:not(:disabled) { filter: brightness(1.12); background: var(--ui-ok); }
+.ui-boton.pel { background: var(--ui-peligro); border-color: var(--ui-peligro); border-bottom-color: rgba(0,0,0,0.35); color: #fff; }
+.ui-boton.pel:hover:not(:disabled) { filter: brightness(1.12); background: var(--ui-peligro); }
+.ui-boton.sel { background: var(--ui-sel); border-color: var(--ui-sel); border-bottom-color: rgba(0,0,0,0.35); color: #fff; }
+.ui-boton.sel:hover:not(:disabled) { filter: brightness(1.12); background: var(--ui-sel); }
+.ui-boton:disabled.pri, .ui-boton:disabled.pel, .ui-boton:disabled.sel {
+  background: var(--ui-hundido); border-color: var(--ui-bd); color: var(--ui-tx-ten); filter: none;
+}
+
+/* Tecla de funcion dibujada dentro del boton o en la barra de estado. */
+.ui-tecla {
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  border: 1px solid var(--ui-bd-fuerte);
+  border-bottom-width: 2px;
+  background: var(--ui-sup);
+  color: var(--ui-tx-sec);
+  white-space: nowrap;
+}
+
+.ui-boton.pri .ui-tecla,
+.ui-boton.pel .ui-tecla,
+.ui-boton.sel .ui-tecla {
+  background: rgba(0, 0, 0, 0.22);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   GRILLA DE OPERACIONES. Los botones gordos que todo POS real tiene a mano
+   para lo que no tiene codigo de barras.
+   ───────────────────────────────────────────────────────────────────────── */
+.ui-ops {
+  display: grid;
+  gap: 1px;
+  background: var(--ui-bd-fuerte);
+  border: 1px solid var(--ui-bd-fuerte);
+}
+
+.ui-ops > button {
+  background: var(--ui-barra-alta);
+  color: var(--ui-tx);
+  border: 0;
+  padding: 6px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.15;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 40px;
+}
+
+.ui-ops > button:hover:not(:disabled) { background: var(--ui-sel-suave); }
+.ui-ops > button:active:not(:disabled) { background: var(--ui-sel); color: var(--ui-tx-inv); }
+.ui-ops > button:disabled { color: var(--ui-tx-ten); background: var(--ui-hundido); cursor: default; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MODAL. Unico lugar con sombra, porque es lo unico que de verdad flota.
+   ───────────────────────────────────────────────────────────────────────── */
+.ui-velo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 20, 27, 0.55);
+}
+
+.ui-modal {
+  background: var(--ui-fondo);
+  border: 1px solid var(--ui-bd-fuerte);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+}
+
+.ui-modal > header {
+  background: var(--ui-sel);
+  color: var(--ui-tx-inv);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Fila de botones al pie, alineada a la derecha como en cualquier dialogo. */
+.ui-modal > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--ui-barra);
+  border-top: 1px solid var(--ui-bd-fuerte);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   El escaner escribe en este campo y no puede perder el foco durante el
+   cobro. El anillo permanente es la senal de que la caja esta lista.
+   ───────────────────────────────────────────────────────────────────────── */
+.ui-escaneo {
+  height: 34px;
+  font-size: 20px;
+  font-weight: 700;
+  padding: 0 8px;
+  letter-spacing: 0.04em;
+}
+
+.ui-escaneo:focus {
+  border-color: var(--ui-foco);
+  box-shadow: inset 0 0 0 2px var(--ui-foco);
+}

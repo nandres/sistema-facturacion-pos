@@ -1,0 +1,92 @@
+name: Release
+
+# Construye el instalador que se entrega.
+#
+# El CI de `ci.yml` corre en Ubuntu y verifica typecheck, lint, pruebas y
+# build: sirve para saber que el codigo compila, pero **nunca produce el .exe**.
+# Es decir, lo unico que el cliente instala era lo unico que nadie construia de
+# forma reproducible.
+#
+# Este workflow lo arma en Windows, calcula el sha256 y lo publica en un
+# Release. Ese hash es el que tiene que ir en `version.json`: el actualizador lo
+# exige y, si no coincide, borra el archivo y no lo ejecuta.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  instalador:
+    name: Instalador de Windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Las mismas verificaciones que ci.yml. Un instalador no se publica sin
+      # que hayan pasado, aunque el push del tag salte el CI normal.
+      - name: Verificar
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+
+      # `package` corre typecheck otra vez y despues electron-builder.
+      #
+      # La firma Authenticode se activa sola si estos dos secrets existen; si
+      # no, electron-builder sigue de largo y el instalador sale sin firmar,
+      # que es como sale hoy. Ver la nota "Firmar el instalador" en la boveda.
+      - name: Construir instalador
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npm run package
+
+      # El hash que va en version.json. Sin el, el actualizador aborta.
+      - name: Calcular sha256
+        id: hash
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem out/*.exe | Select-Object -First 1
+          $h = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          Write-Output "archivo=$($exe.Name)" >> $env:GITHUB_OUTPUT
+          Write-Output "sha256=$h"          >> $env:GITHUB_OUTPUT
+          Write-Output "## Instalador"                        >> $env:GITHUB_STEP_SUMMARY
+          Write-Output ""                                     >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "``````"                               >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "archivo: $($exe.Name)"                >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "sha256 : $h"                          >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "``````"                               >> $env:GITHUB_STEP_SUMMARY
+          Write-Output ""                                     >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "Copiar ese sha256 a ``version.json`` en la rama principal." >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Publicar el Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*.exe
+          draft: true
+          body: |
+            Instalador de Windows.
+
+            ```
+            archivo: ${{ steps.hash.outputs.archivo }}
+            sha256 : ${{ steps.hash.outputs.sha256 }}
+            ```
+
+            **Antes de publicar el borrador:** copiar ese `sha256` y la URL del
+            `.exe` a `version.json` en la rama principal. Hasta que eso pase,
+            ninguna caja se entera de esta version — que es a proposito: el
+            actualizador no ejecuta un binario que no puede verificar.

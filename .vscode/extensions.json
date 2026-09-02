@@ -1,0 +1,20 @@
+{
+  // Extensiones que el proyecto da por sentadas. VS Code las ofrece al abrir
+  // el repo por primera vez.
+  "recommendations": [
+    // Marca los problemas reales de código. Sin esto no ves los warnings de
+    // ESLint hasta correr `npm run lint`.
+    "dbaeumer.vscode-eslint",
+
+    // Autocompletado y hover de clases Tailwind. Sin esto, `bg-ui-sup` es
+    // texto suelto y no hay forma de ver qué color es.
+    "bradlc.vscode-tailwindcss"
+  ],
+
+  // El proyecto no usa Prettier: el formato lo fija ESLint y el estilo del
+  // código existente. Con Prettier activo, cada archivo que guardes se
+  // reformatea entero y el diff se vuelve ilegible.
+  "unwantedRecommendations": [
+    "esbenp.prettier-vscode"
+  ]
+}

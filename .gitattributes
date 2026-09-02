@@ -1,0 +1,46 @@
+# Finales de línea.
+#
+# El árbol de trabajo es mayormente CRLF y no había .gitattributes, así que
+# cada máquina dependía de su propio core.autocrlf. Cuando una herramienta
+# escribía un archivo en LF, el diff mostraba el archivo entero como
+# modificado y se volvía ilegible.
+#
+# `text=auto` normaliza a LF dentro del repositorio; `eol=crlf` fuerza CRLF al
+# hacer checkout. Es una app solo para Windows: no hay caso de uso que necesite
+# LF en el árbol de trabajo.
+#
+# OJO, UNA SOLA VEZ: hay ~45 archivos cuyo blob quedó guardado en CRLF (se
+# commitearon con core.autocrlf apagado, o por herramientas que lo esquivaron).
+# Al agregar este archivo, git los renormaliza a LF y eso se ve como un diff
+# gigante. Va en un commit propio y aparte:
+#
+#     git add --renormalize .
+#     git commit -m "chore: normalizar finales de linea con .gitattributes"
+#
+# Si se mezcla con cambios de código, el diff de esos cambios se vuelve
+# imposible de revisar.
+* text=auto eol=crlf
+
+# Los scripts de shell tienen que quedar en LF aunque se editen en Windows.
+*.sh text eol=lf
+
+# Binarios: git no los toca.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.xlsx binary
+*.xls  binary
+*.exe  binary
+*.dll  binary
+*.bin  binary
+*.ttf  binary
+*.woff  binary
+*.woff2 binary
+
+# Generados: no ensucian los diffs ni cuentan como código del proyecto.
+package-lock.json -diff linguist-generated
+dist/**           linguist-generated
+out/**            linguist-generated

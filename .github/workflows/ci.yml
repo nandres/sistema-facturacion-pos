@@ -1,0 +1,88 @@
+name: CI
+
+# Chequeo de cada push y de cada PR. Corre lo mismo que hay que correr a mano
+# antes de dar algo por terminado: typecheck (main y renderer), lint y build.
+#
+# Nota: `npm run build` ya ejecuta typecheck internamente. Igual se corren por
+# separado, para que el log diga cuál de los tres falló sin tener que leerlo.
+
+on:
+  push:
+    branches: [main, master, 'refactor/**']
+  pull_request:
+  workflow_dispatch:
+
+# Un push nuevo sobre la misma rama cancela el anterior: no tiene sentido
+# esperar el resultado de un commit que ya quedó atrás.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      # `npm ci` respeta package-lock. La descarga del binario de Electron no
+      # hace falta para typecheck ni build: solo se compila TypeScript.
+      - name: Instalar dependencias
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Typecheck (main y renderer)
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # Guaraníes, IVA con envase devuelto, reparto por rol y los bytes del
+      # ticket ESC/POS. El snapshot del ticket es lo que convierte «no cambies
+      # esos bytes» en una regla que la máquina hace cumplir.
+      - name: Pruebas
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  auditoria:
+    name: npm audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      # Lo que llega al usuario final. Falla el job si aparece algo alto o
+      # crítico en el árbol de producción.
+      - name: Vulnerabilidades que llegan al instalador
+        run: npm audit --omit=dev --audit-level=high
+
+      # La cadena de build tiene avisos conocidos que piden salto de versión
+      # mayor de Electron y electron-builder (ver AUDITORIA.md, A-09). Se
+      # informa pero no se frena, para no bloquear el desarrollo por algo que
+      # ya está registrado y planificado.
+      - name: Vulnerabilidades de la cadena de build (informativo)
+        run: npm audit || true
