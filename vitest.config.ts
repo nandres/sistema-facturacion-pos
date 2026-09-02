@@ -11,5 +11,18 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     reporters: ['default'],
+
+    // ── Zona horaria fija ──────────────────────────────────────────────────
+    //
+    // El ticket imprime la fecha con `toLocaleString('es-PY', …)`, que usa la
+    // zona horaria de la máquina. Sin fijarla, los snapshots de bytes pasan en
+    // Asunción y fallan en el CI, que corre en UTC: el mismo instante sale
+    // como 11:30 acá y 14:30 allá.
+    //
+    // Se fija a la del comercio, no a UTC, porque la hora que interesa
+    // verificar es la que el cliente lee en el papel.
+    env: {
+      TZ: 'America/Asuncion',
+    },
   },
 });
