@@ -179,12 +179,12 @@ no lo tiene— pero tampoco actualiza a nadie.
 
 Hasta el paso 3, ninguna caja se entera de la versión nueva. Es a propósito.
 
-> **Mientras el repositorio sea privado, el canal no funciona.** El actualizador
-> pide `version.json` a `raw.githubusercontent.com` sin autenticarse, y en un
-> repositorio privado eso devuelve 404 siempre —no 403, así que ni siquiera se
-> distingue de un archivo que no existe—. Verificado: la misma URL da 200 con un
-> token y 404 sin él. Para que las cajas se actualicen, el manifiesto y el `.exe`
-> tienen que estar en un lugar público.
+> **El repositorio tiene que ser público para que el canal funcione.** El
+> actualizador pide `version.json` a `raw.githubusercontent.com` sin
+> autenticarse; contra un repositorio privado eso devuelve 404 siempre —no 403,
+> así que ni siquiera se distingue de un archivo que no existe— y ninguna caja
+> se entera nunca de una versión nueva. Con el repositorio público la URL
+> responde 200 y el canal queda operativo.
 
 ## Estado
 
