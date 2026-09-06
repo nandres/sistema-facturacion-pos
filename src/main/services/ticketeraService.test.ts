@@ -4,8 +4,8 @@ import { describe, it, expect, vi } from 'vitest';
 //
 // «`construirTicket()`, `construirNotaCredito()` y `construirEtiquetaCodigo()`
 // devuelven los mismos bytes, incluido el pulso del cajón» es la regla de oro
-// del proyecto, y hasta ahora era un comentario en CLAUDE.md: dependía de que
-// quien tocara el archivo lo hubiera leído.
+// del proyecto, y hasta ahora era una línea en el README: dependía de que
+// quien tocara el archivo la hubiera leído.
 //
 // Acá deja de depender de eso. Si alguien cambia un byte del ticket, el
 // snapshot falla y hay que decidirlo a propósito en vez de descubrirlo cuando

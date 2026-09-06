@@ -37,10 +37,21 @@ out/
 # Logs locales
 logs/*.log
 
-# Backups / AI
-.claude/
+# Respaldos de trabajo
 .ui_backup*/
 .ui_backup2*/
+
+# Documentacion interna. Vive en la maquina, no en el repositorio.
+#
+# El repositorio es el producto: el codigo que se entrega y lo que hace falta
+# para construirlo. Las notas de trabajo, la bitacora y los procedimientos de
+# operacion se quedan en la maquina.
+AUDITORIA.md
+Ideas_PrimerSoftware/
+supabase/auditoria/
+
+# Estado local de la CLI de Supabase. `supabase/.temp/` ya va mas arriba.
+supabase/.branches/
 
 # Obsidian.
 #

@@ -49,11 +49,16 @@ Completar `.env` con los datos del proyecto de Supabase:
 
 ```
 SUPABASE_URL=
+SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 TICKETERA_USB_ID=0x0416
 TICKETERA_NOMBRE=5830 series
 LECTOR_TIMEOUT=500
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` ignora las políticas de la base. Es el respaldo del
+ingreso mientras el login por usuario termina de probarse en el mostrador, y el
+objetivo es dejar de necesitarla.
 
 > **`.env` nunca se versiona.** Está en `.gitignore` y el historial del
 > repositorio está verificado y limpio de credenciales.
@@ -114,14 +119,6 @@ Las entidades del dominio, los nombres de tabla y los textos de interfaz van en
 **español** (`productos`, `ventas`, `vuelto`, `arqueo`). Los comentarios de
 código y los mensajes de commit también.
 
-## Documentación
-
-- **[AUDITORIA.md](AUDITORIA.md)** — auditoría en curso: hallazgos abiertos,
-  plan por fases y restricciones del entorno. **Leerlo antes de tocar código.**
-- **`Ideas_PrimerSoftware/`** — bóveda de Obsidian con la documentación del
-  sistema, los hallazgos de seguridad y los procedimientos de operación. Abrir
-  la carpeta como vault; el punto de entrada es `00 Índice del proyecto`.
-
 ## Publicar una versión
 
 El repositorio **es** el canal de actualizaciones: cada terminal instalada lee
@@ -138,9 +135,10 @@ Hasta el paso 3, ninguna caja se entera de la versión nueva. Es a propósito.
 
 ## Estado
 
-En uso. Verificaciones en verde: `typecheck`, `lint`, `test` (50 pruebas) y
+En uso. Verificaciones en verde: `typecheck`, `lint`, `test` (68 pruebas) y
 `build`, con 0 errores y 0 warnings.
 
-> **Antes de desplegar:** `20260901000001_venta_idempotente.sql` está escrita y
-> sin aplicar. Cierra la duplicación de ventas al reintentar una venta offline.
-> La verificación está al pie del propio archivo.
+> **Antes de desplegar:** revisar que las migraciones de `supabase/migrations/`
+> estén todas aplicadas contra la base del comercio. El sistema no las aplica
+> solo, y una función que el código llama y la base no tiene falla recién en el
+> mostrador.
