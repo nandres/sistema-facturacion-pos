@@ -15,6 +15,7 @@ import {
   VentaError,
   type VentaInput,
 } from '../src/main/services/ventaService';
+import type { PagoInput } from '../src/shared/types/ventas';
 
 const CODIGO_A = 'TEST-PROD-01';
 const CODIGO_B = 'TEST-PROD-02';
@@ -27,6 +28,18 @@ const PRECIO_B = 3000;
 
 // IDs de las ventas que cree alguna prueba — se borran en cleanup.
 const ventasCreadas: number[] = [];
+
+// El desglose por medio de pago pasó a ser obligatorio en la cabecera con
+// `20260828000001_pagos_en_transaccion_y_arqueo.sql`: `registrar_venta` inserta
+// una fila por medio y el arqueo las suma desde ahí. Este script quedó escrito
+// antes de eso, así que mandaba ventas sin desglose.
+//
+// Todos los casos de acá cobran en efectivo, así que el desglose es una sola
+// línea por el total. Se arma con esto para no repetir en seis lugares la misma
+// expresión del total, que es justo donde se cuelan las diferencias.
+function enEfectivo(monto: number): PagoInput[] {
+  return [{ medio_pago: 'efectivo', monto }];
+}
 
 async function obtenerStock(codigo: string): Promise<number> {
   const p = await obtenerProducto(codigo);
@@ -87,6 +100,7 @@ async function probarCasoFeliz(): Promise<void> {
       total_pagado: 2 * PRECIO_A + 1 * PRECIO_B,
       monto_recibido: 20000,
       tipo_pago: 'efectivo',
+      pagos: enEfectivo(2 * PRECIO_A + 1 * PRECIO_B),
     },
     lineas: [
       { codigo_barras: CODIGO_A, cantidad: 2, precio_unitario: PRECIO_A },
@@ -114,7 +128,7 @@ async function probarP0001LineasVacias(): Promise<void> {
   const stockAntes = await obtenerStock(CODIGO_A);
   try {
     await registrarVenta({
-      cabecera: { total_pagado: 0, monto_recibido: 0, tipo_pago: 'efectivo' },
+      cabecera: { total_pagado: 0, monto_recibido: 0, tipo_pago: 'efectivo', pagos: enEfectivo(0) },
       lineas: [],
     });
     throw new Error('Se esperaba VentaError P0001 pero la llamada tuvo éxito');
@@ -134,7 +148,7 @@ async function probarP0002TotalMismatch(): Promise<void> {
   const stockAntes = await obtenerStock(CODIGO_A);
   try {
     await registrarVenta({
-      cabecera: { total_pagado: 9999, monto_recibido: 10000, tipo_pago: 'efectivo' },
+      cabecera: { total_pagado: 9999, monto_recibido: 10000, tipo_pago: 'efectivo', pagos: enEfectivo(9999) },
       lineas: [
         { codigo_barras: CODIGO_A, cantidad: 1, precio_unitario: PRECIO_A }, // suma real 5000
       ],
@@ -152,7 +166,7 @@ async function probarP0003ProductoInexistente(): Promise<void> {
   const stockAntes = await obtenerStock(CODIGO_A);
   try {
     await registrarVenta({
-      cabecera: { total_pagado: 5000, monto_recibido: 5000, tipo_pago: 'efectivo' },
+      cabecera: { total_pagado: 5000, monto_recibido: 5000, tipo_pago: 'efectivo', pagos: enEfectivo(5000) },
       lineas: [
         { codigo_barras: CODIGO_INEXISTENTE, cantidad: 1, precio_unitario: 5000 },
       ],
@@ -175,6 +189,7 @@ async function probarP0004StockInsuficiente(): Promise<void> {
         total_pagado: cantidadExagerada * PRECIO_A,
         monto_recibido: cantidadExagerada * PRECIO_A,
         tipo_pago: 'efectivo',
+        pagos: enEfectivo(cantidadExagerada * PRECIO_A),
       },
       lineas: [
         { codigo_barras: CODIGO_A, cantidad: cantidadExagerada, precio_unitario: PRECIO_A },
@@ -206,6 +221,7 @@ async function probarAtomicidadEntreLineas(): Promise<void> {
         total_pagado: 1 * PRECIO_A + cantidadFallida * PRECIO_B,
         monto_recibido: 1 * PRECIO_A + cantidadFallida * PRECIO_B,
         tipo_pago: 'efectivo',
+        pagos: enEfectivo(1 * PRECIO_A + cantidadFallida * PRECIO_B),
       },
       lineas: [
         { codigo_barras: CODIGO_A, cantidad: 1, precio_unitario: PRECIO_A },                  // válida
