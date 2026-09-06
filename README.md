@@ -1,5 +1,7 @@
 # Sistema de Facturación y Stock
 
+[![CI](https://github.com/nandres/sistema-facturacion-pos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nandres/sistema-facturacion-pos/actions/workflows/ci.yml)
+
 Punto de venta y control de stock para supermercados en Paraguay. Aplicación de
 escritorio Windows, pensada para el mostrador: se opera con lector de códigos de
 barras y teclado, sin mouse, e imprime en ticketera térmica sin pasar por el
