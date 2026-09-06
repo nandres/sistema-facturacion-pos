@@ -5,6 +5,14 @@ escritorio Windows, pensada para el mostrador: se opera con lector de códigos d
 barras y teclado, sin mouse, e imprime en ticketera térmica sin pasar por el
 diálogo de impresión de Windows.
 
+Está **en uso en un comercio real**, no es una maqueta.
+
+![Punto de venta](docs/capturas/punto-de-venta.png)
+
+*Pantalla de cobro. Desglose de IVA por tasa (5% y 10%), teclado numérico para
+el efectivo, y toda la operación con teclas de función: el cajero no toca el
+mouse. Los datos de las capturas son inventados.*
+
 > **Software propietario.** Ver [LICENSE](LICENSE).
 
 ## Qué hace
@@ -21,6 +29,18 @@ diálogo de impresión de Windows.
   clientes.**
 - **Informes** de ganancias, envases, productos más vendidos y ventas por hora.
 - **Modo offline.** La caja sigue vendiendo sin internet y sincroniza al volver.
+
+### Cómo se ve
+
+| Menú principal | Control de stock |
+|---|---|
+| ![Menú principal](docs/capturas/menu-principal.png) | ![Control de stock](docs/capturas/control-de-stock.png) |
+| Estado del turno, vendido del día y alerta de reposición de un vistazo. | Productos por debajo del mínimo, con generación e impresión de etiquetas EAN-13. |
+
+![Informes de ganancias](docs/capturas/informes.png)
+
+*Ganancia por línea de venta, con precio de costo y de venta. El costo se guarda
+por producto, así que el margen sale del dato real y no de un porcentaje fijo.*
 
 ## Stack
 
