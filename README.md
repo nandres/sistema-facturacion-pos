@@ -40,6 +40,28 @@ diálogo de impresión de Windows.
 
 ## Instalación
 
+### En un comercio
+
+El instalador es uno solo y sirve para cualquier cliente: no lleva adentro
+ninguna credencial ni ningún dato del negocio.
+
+1. Ejecutar el `.exe`.
+2. La primera vez, la aplicación pide la **dirección del proyecto Supabase** y
+   la **clave de servicio**. Están en el panel de Supabase del comercio, en
+   *Project Settings → API*. La clave queda guardada en esa máquina, cifrada
+   con el almacén de Windows.
+3. Cargar el nombre y el RUC del comercio en *Configuración*. Encabezan cada
+   ticket.
+4. Elegir la impresora en esa misma pantalla.
+
+La conexión se puede cambiar después desde *Configuración*, sin reinstalar.
+
+> **Al actualizar desde una versión anterior a la 1.1.0**, la caja va a pedir
+> la conexión una vez: antes venía adentro del instalador y ahora vive en la
+> máquina. Es una sola vez por terminal.
+
+### Para desarrollar
+
 ```bash
 npm install
 cp .env.example .env
@@ -60,6 +82,10 @@ LECTOR_TIMEOUT=500
 ingreso mientras el login por usuario termina de probarse en el mostrador, y el
 objetivo es dejar de necesitarla.
 
+El `.env` **sólo sirve para desarrollo**: siembra la configuración la primera
+vez que arranca la app en esta máquina, para no tener que cargarla a mano. El
+instalador no lo empaqueta.
+
 > **`.env` nunca se versiona.** Está en `.gitignore` y el historial del
 > repositorio está verificado y limpio de credenciales.
 
@@ -72,7 +98,7 @@ de Supabase o con la CLI.
 npm run dev          # levanta la app en desarrollo
 npm run typecheck    # chequea main Y renderer
 npm run lint         # ESLint 9 (flat config)
-npm test             # vitest: guaraní, IVA, roles y bytes del ticket
+npm test             # vitest: guaraní, IVA, roles, conexión y bytes del ticket
 npm run build        # corre typecheck primero
 npm run package      # genera el instalador
 ```
@@ -135,7 +161,7 @@ Hasta el paso 3, ninguna caja se entera de la versión nueva. Es a propósito.
 
 ## Estado
 
-En uso. Verificaciones en verde: `typecheck`, `lint`, `test` (68 pruebas) y
+En uso. Verificaciones en verde: `typecheck`, `lint`, `test` (78 pruebas) y
 `build`, con 0 errores y 0 warnings.
 
 > **Antes de desplegar:** revisar que las migraciones de `supabase/migrations/`

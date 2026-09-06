@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import { log } from './logger';
+import { obtenerConexion } from './configService';
 
 /**
  * Punto de entrada único al acceso a datos.
@@ -13,8 +14,7 @@ import { log } from './logger';
  *
  * ── EL PROBLEMA QUE SE ESTÁ CERRANDO ──────────────────────────────────────
  *
- * Hasta ahora todo salía con la `service_role` key, que viaja dentro del
- * instalador (`build.extraResources` empaqueta el `.env`). Ese rol tiene
+ * Hasta ahora todo salía con la `service_role` key. Ese rol tiene
  * BYPASSRLS: ninguna de las políticas de C-02 lo frena. Cualquiera con acceso
  * a una PC de caja obtiene control total del proyecto.
  *
@@ -37,9 +37,9 @@ let clienteSesion: SupabaseClient | null = null;
 export type ModoAcceso = 'sesion' | 'service_role';
 
 function url(): string {
-  const u = process.env.SUPABASE_URL;
+  const u = obtenerConexion().url;
   if (!u || u === 'tu_url_aqui') {
-    throw new Error('SUPABASE_URL no está configurada. Revisá el archivo .env en la raíz del proyecto.');
+    throw new Error('La conexión con la base no está configurada. Cargala en Configuración.');
   }
   return u;
 }
@@ -52,9 +52,9 @@ const opcionesComunes = {
 function crearClienteServicio(): SupabaseClient {
   if (clienteServicio) return clienteServicio;
 
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = obtenerConexion().serviceRoleKey;
   if (!serviceRoleKey || serviceRoleKey === 'tu_clave_service_role_aqui') {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY no está configurada. Revisá el archivo .env en la raíz del proyecto.');
+    throw new Error('La clave de acceso a la base no está configurada. Cargala en Configuración.');
   }
 
   clienteServicio = createClient(url(), serviceRoleKey, opcionesComunes);
@@ -69,6 +69,22 @@ function crearClienteServicio(): SupabaseClient {
  */
 export function obtenerClienteSupabase(): SupabaseClient {
   return clienteSesion ?? crearClienteServicio();
+}
+
+/**
+ * Tira los clientes cacheados.
+ *
+ * `createClient` guarda la URL y la clave adentro, así que cambiar la conexión
+ * desde Configuración no alcanza: sin esto la caja seguiría hablándole al
+ * proyecto anterior hasta reiniciar la aplicación.
+ *
+ * No cierra la sesión del cajero a propósito: si la conexión cambió, ese token
+ * ya no vale contra el proyecto nuevo, y `cerrarSesion()` lo limpia por el
+ * camino normal.
+ */
+export function reiniciarClientes(): void {
+  clienteServicio = null;
+  clienteSesion = null;
 }
 
 /** Con qué identidad se está operando. */
@@ -102,7 +118,7 @@ export interface SesionCajero {
  * llamador decide si cae al login viejo; acá no se decide esa política.
  */
 export async function iniciarSesion(nombre: string, password: string): Promise<SesionCajero | null> {
-  const anonKey = process.env.SUPABASE_ANON_KEY;
+  const anonKey = obtenerConexion().anonKey;
   if (!anonKey) {
     // Sin anon key no hay camino nuevo posible. No es un error: es una
     // instalación que todavía no se configuró para Supabase Auth.

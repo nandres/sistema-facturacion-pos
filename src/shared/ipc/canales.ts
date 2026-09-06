@@ -85,4 +85,6 @@ export const CANALES = {
   configListarImpresoras: 'config:listar-impresoras',
   configGuardarImpresora: 'config:guardar-impresora',
   configTestImpresora: 'config:test-impresora',
+  configEstadoConexion: 'config:estado-conexion',
+  configGuardarConexion: 'config:guardar-conexion',
 } as const;

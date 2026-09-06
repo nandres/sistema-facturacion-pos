@@ -13,13 +13,15 @@ import { registrarMovimiento, listarMovimientos } from '../services/cajaMovimien
 import { listarCuentas, crearCuenta, actualizarEstadoCuenta } from '../services/cuentaService';
 import { listarEnvases } from '../services/envaseService';
 import { listarProveedores, crearProveedor, registrarCompra, listarCompras } from '../services/compraService';
-import { listarImpresoras, guardarImpresoraConfig, obtenerImpresoraConfig, obtenerComercio, guardarComercio } from '../services/configService';
+import { listarImpresoras, guardarImpresoraConfig, obtenerImpresoraConfig, obtenerComercio, guardarComercio, estadoConexion, guardarConexion, obtenerConexion } from '../services/configService';
+import { reiniciarClientes } from '../services/supabaseClient';
 import { listarClientes, crearCliente, actualizarLimiteCredito, registrarCompraFiado, registrarAmortizacion, eliminarCliente } from '../services/clienteFiadoService';
 import { log } from '../services/logger';
 import type { ActualizarProductoInput, ProductoFaltante } from '../../shared/types/productos';
 import type { Resultado } from '../../shared/types/api';
 import type { DatosTicket, DatosTicketZ } from '../../shared/types/ventas';
 import type { Comercio } from '../../shared/config/comercio';
+import { claveValida, urlValida, type Conexion } from '../../shared/config/conexion';
 import { CANALES } from '../../shared/ipc/canales';
 import { normalizarError } from './errores';
 
@@ -545,6 +547,40 @@ export function registrarHandlersIPC(): void {
   registrar(CANALES.configGuardarImpresora, async (nombre: string) => {
     guardarImpresoraConfig(nombre);
     return null;
+  });
+
+  registrar(CANALES.configEstadoConexion, async () => {
+    return estadoConexion();
+  });
+
+  registrar(CANALES.configGuardarConexion, async (datos: Conexion) => {
+    // Una clave vacía significa «no la cambies». Es lo que permite editar la
+    // conexión desde Configuración sin volver a tipear la clave entera: la
+    // pantalla nunca la recibe en claro, así que no puede devolverla.
+    const actual = obtenerConexion();
+    datos = {
+      url: datos.url,
+      serviceRoleKey: datos.serviceRoleKey.trim() || actual.serviceRoleKey,
+      anonKey: datos.anonKey.trim() || actual.anonKey,
+    };
+
+    // Se valida acá y no sólo en la pantalla: este canal es la única puerta al
+    // store, y una conexión mal guardada no falla al guardarse --falla en la
+    // primera venta.
+    if (!urlValida(datos.url)) {
+      throw new Error('La dirección del proyecto no es válida: tiene que empezar con https://');
+    }
+    if (!claveValida(datos.serviceRoleKey)) {
+      throw new Error('La clave de servicio no tiene forma de clave de Supabase.');
+    }
+    if (datos.anonKey.trim() && !claveValida(datos.anonKey)) {
+      throw new Error('La clave pública no tiene forma de clave de Supabase.');
+    }
+
+    guardarConexion(datos);
+    // Los clientes cacheados quedaron atados al proyecto anterior.
+    reiniciarClientes();
+    return estadoConexion();
   });
 
   registrar(CANALES.configTestImpresora, async () => {

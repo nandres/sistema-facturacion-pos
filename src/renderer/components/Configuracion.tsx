@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Aviso, BarraHerramientas, Caja, Campo, Etiqueta, Fila, TituloModulo, Vacio } from '../ui';
 import { useComercio } from '../contexts/ComercioContext';
+import { urlValida, type EstadoConexion } from '../../shared/config/conexion';
 
 export default function Configuracion(): JSX.Element {
   const { comercio, refrescar: refrescarComercio } = useComercio();
@@ -14,6 +15,11 @@ export default function Configuracion(): JSX.Element {
   const [cargando, setCargando] = useState(true);
   const [manual, setManual] = useState('');
   const [probando, setProbando] = useState(false);
+  const [conexion, setConexion] = useState<EstadoConexion | null>(null);
+  const [urlConexion, setUrlConexion] = useState('');
+  const [serviceKeyNueva, setServiceKeyNueva] = useState('');
+  const [anonKeyNueva, setAnonKeyNueva] = useState('');
+  const [guardandoConexion, setGuardandoConexion] = useState(false);
 
   useEffect(() => {
     window.api.config.listarImpresoras().then(r => {
@@ -26,6 +32,36 @@ export default function Configuracion(): JSX.Element {
       }
     }).finally(() => setCargando(false));
   }, []);
+
+  useEffect(() => {
+    window.api.config.estadoConexion().then(r => {
+      if (r.ok) { setConexion(r.data); setUrlConexion(r.data.url); }
+    });
+  }, []);
+
+  async function guardarDatosConexion() {
+    setGuardandoConexion(true);
+    setMensaje('');
+    try {
+      // Las claves van vacías si no se tocaron: el proceso main entiende eso
+      // como «dejala como está». La pantalla nunca las recibe en claro, así
+      // que no puede devolverlas.
+      const r = await window.api.config.guardarConexion({
+        url: urlConexion,
+        serviceRoleKey: serviceKeyNueva,
+        anonKey: anonKeyNueva,
+      });
+      if (!r.ok) { setMensaje(`No se pudo guardar: ${r.mensaje}`); return; }
+      setConexion(r.data);
+      setServiceKeyNueva('');
+      setAnonKeyNueva('');
+      setMensaje('Conexión guardada.');
+    } catch {
+      setMensaje('No se pudo guardar la conexión.');
+    } finally {
+      setGuardandoConexion(false);
+    }
+  }
 
   // Los campos arrancan con lo que ya está guardado. Se sincronizan cuando el
   // contexto termina de cargar, que puede ser después del primer render.
@@ -140,6 +176,69 @@ export default function Configuracion(): JSX.Element {
               <span className="text-[11px] text-ui-txt">
                 Encabezan el ticket, la nota de crédito y el cierre Z. El nombre entra en
                 32 columnas de papel: más largo que eso, se corta al imprimir.
+              </span>
+            </div>
+          </Caja>
+        </div>
+
+        {/* La conexión se carga en el primer arranque y casi nunca se vuelve a
+            tocar. Está acá para cuando se toca: una mudanza de proyecto, o la
+            rotación de la clave de servicio. */}
+        <div className="mb-4 max-w-4xl">
+          <Caja titulo="Conexión con la base de datos" cuerpoClassName="p-2">
+            <div className="grid grid-cols-[1fr_240px] gap-2">
+              <Campo rotulo="Dirección del proyecto">
+                <input
+                  type="text"
+                  value={urlConexion}
+                  onChange={(e) => setUrlConexion(e.target.value)}
+                  placeholder="https://xxxxxxxx.supabase.co"
+                  spellCheck={false}
+                  className="ui-campo"
+                />
+              </Campo>
+              <Campo rotulo="Claves guardadas">
+                <div className="ui-campo flex items-center !text-[11px] text-ui-txt">
+                  {conexion?.cifrada ? 'Cifradas por Windows' : 'Sin cifrar'}
+                </div>
+              </Campo>
+            </div>
+
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Campo rotulo={`Clave de servicio ${conexion?.serviceRoleKeyPista ?? ''}`}>
+                <input
+                  type="password"
+                  value={serviceKeyNueva}
+                  onChange={(e) => setServiceKeyNueva(e.target.value)}
+                  placeholder="Vacío = no cambiarla"
+                  autoComplete="off"
+                  className="ui-campo"
+                />
+              </Campo>
+              <Campo rotulo={`Clave pública anon ${conexion?.anonKeyPista ?? ''}`}>
+                <input
+                  type="password"
+                  value={anonKeyNueva}
+                  onChange={(e) => setAnonKeyNueva(e.target.value)}
+                  placeholder="Vacío = no cambiarla"
+                  autoComplete="off"
+                  className="ui-campo"
+                />
+              </Campo>
+            </div>
+
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={guardarDatosConexion}
+                disabled={guardandoConexion || !urlValida(urlConexion)}
+                className="ui-boton pri"
+              >
+                {guardandoConexion ? 'Guardando…' : 'Guardar'}
+              </button>
+              <span className="text-[11px] text-ui-txt">
+                Cambiar la dirección apunta esta caja a otra base. Si hay ventas sin
+                sincronizar, se van a sincronizar contra la base nueva.
               </span>
             </div>
           </Caja>

@@ -13,12 +13,6 @@
     "directories": {
       "output": "out"
     },
-    "extraResources": [
-      {
-        "from": ".env",
-        "to": ".env"
-      }
-    ],
     "files": [
       "dist/**/*",
       "package.json"

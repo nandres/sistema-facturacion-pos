@@ -5,6 +5,7 @@
 
 import type { Producto, CrearProductoInput, ActualizarProductoInput, ProductoFaltante, DevolucionConDetalle } from './productos';
 import type { Comercio } from '../config/comercio';
+import type { Conexion, EstadoConexion } from '../config/conexion';
 import type { Venta, VentaInput, VentaConLineas, DatosTicket, DatosTicketZ, VentaResumen, VentaDetalle, Arqueo, ProductoAlertaStock, VentaPendiente, VentaFallida, EstadoOffline, ResultadoSincronizacion, MovimientoCaja, Cuenta, LineaGanancia, ResumenEnvase, UsuarioSesion, CarritoGuardado, Envase, Proveedor, CompraDB, TopProducto, VentaPorHora, ClienteFiado } from './ventas';
 
 export type ResultadoOk<T> = { ok: true; data: T };
@@ -141,6 +142,8 @@ export interface ApiPOS {
     listarImpresoras(): Promise<Resultado<{ impresoras: string[]; actual: string | null }>>;
     guardarImpresora(nombre: string): Promise<Resultado<null>>;
     testImpresora(): Promise<Resultado<null>>;
+    estadoConexion(): Promise<Resultado<EstadoConexion>>;
+    guardarConexion(datos: Conexion): Promise<Resultado<EstadoConexion>>;
   };
 }
 

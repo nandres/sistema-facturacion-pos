@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
+import ConfiguracionInicial from './components/ConfiguracionInicial';
 import VentaPOS from './components/VentaPOS';
 import HistorialVentas from './components/HistorialVentas';
 import AlertaStock from './components/AlertaStock';
@@ -79,6 +80,9 @@ export default function App(): JSX.Element {
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const [updateInfo, setUpdateInfo] = useState<{ version: string; url: string; changelog?: string } | null>(null);
   const [descargando, setDescargando] = useState(false);
+  // null mientras se comprueba: no se puede decidir entre login y
+  // configuración inicial hasta saber si hay conexión guardada.
+  const [conexionLista, setConexionLista] = useState<boolean | null>(null);
 
   async function checkEstado() {
     try {
@@ -179,6 +183,28 @@ export default function App(): JSX.Element {
       clearInterval(reloj);
     };
   }, [usuario]);
+
+  // La conexión con la base se guarda por instalación --ya no viaja dentro
+  // del instalador-- así que hay que comprobarla antes de dibujar nada.
+  useEffect(() => {
+    window.api.config.estadoConexion()
+      .then((r) => setConexionLista(r.ok ? r.data.configurada : false))
+      .catch(() => setConexionLista(false));
+  }, []);
+
+  if (conexionLista === null) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-ui-fondo text-[12px] text-ui-txt">
+        Iniciando…
+      </div>
+    );
+  }
+
+  // Sin base configurada no tiene sentido pedir usuario: no hay contra qué
+  // validarlo. Es el primer arranque de una instalación nueva.
+  if (!conexionLista) {
+    return <ConfiguracionInicial onListo={() => setConexionLista(true)} />;
+  }
 
   if (!usuario) {
     return <Login onLogin={(u) => { setUsuario(u); setPantalla('home'); }} />;

@@ -3,6 +3,7 @@ import type { ApiPOS, Resultado } from '../shared/types/api';
 import type { Producto, ProductoFaltante, DevolucionConDetalle } from '../shared/types/productos';
 import type { Venta, VentaInput, VentaConLineas, DatosTicket, DatosTicketZ, VentaResumen, VentaDetalle, Arqueo, ProductoAlertaStock, VentaPendiente, VentaFallida, EstadoOffline, ResultadoSincronizacion, MovimientoCaja, Cuenta, LineaGanancia, ResumenEnvase, UsuarioSesion, CarritoGuardado, Envase, Proveedor, CompraDB, TopProducto, VentaPorHora, ClienteFiado } from '../shared/types/ventas';
 import type { Comercio } from '../shared/config/comercio';
+import type { Conexion, EstadoConexion } from '../shared/config/conexion';
 import { CANALES } from '../shared/ipc/canales';
 
 const api: ApiPOS = {
@@ -199,6 +200,10 @@ const api: ApiPOS = {
       ipcRenderer.invoke(CANALES.configGuardarImpresora, nombre) as Promise<Resultado<null>>,
     testImpresora: () =>
       ipcRenderer.invoke(CANALES.configTestImpresora) as Promise<Resultado<null>>,
+    estadoConexion: () =>
+      ipcRenderer.invoke(CANALES.configEstadoConexion) as Promise<Resultado<EstadoConexion>>,
+    guardarConexion: (datos: Conexion) =>
+      ipcRenderer.invoke(CANALES.configGuardarConexion, datos) as Promise<Resultado<EstadoConexion>>,
   },
 };
 
