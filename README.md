@@ -159,6 +159,13 @@ no lo tiene— pero tampoco actualiza a nadie.
 
 Hasta el paso 3, ninguna caja se entera de la versión nueva. Es a propósito.
 
+> **Mientras el repositorio sea privado, el canal no funciona.** El actualizador
+> pide `version.json` a `raw.githubusercontent.com` sin autenticarse, y en un
+> repositorio privado eso devuelve 404 siempre —no 403, así que ni siquiera se
+> distingue de un archivo que no existe—. Verificado: la misma URL da 200 con un
+> token y 404 sin él. Para que las cajas se actualicen, el manifiesto y el `.exe`
+> tienen que estar en un lugar público.
+
 ## Estado
 
 En uso. Verificaciones en verde: `typecheck`, `lint`, `test` (78 pruebas) y
