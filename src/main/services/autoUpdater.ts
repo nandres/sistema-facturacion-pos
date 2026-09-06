@@ -40,7 +40,7 @@ const HOSTS_CONFIABLES = new Set([
 ]);
 
 const UPDATE_URL = process.env.UPDATE_URL
-  || 'https://raw.githubusercontent.com/nandres/sistema-facturacion/main/version.json';
+  || 'https://raw.githubusercontent.com/nandres/sistema-facturacion-pos/main/version.json';
 
 const MAX_REDIRECCIONES = 5;
 const MAX_FEED_BYTES = 64 * 1024;
