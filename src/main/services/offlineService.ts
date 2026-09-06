@@ -115,9 +115,13 @@ export function guardarVentaOffline(input: VentaInput): VentaPendiente {
     fecha: new Date().toISOString(),
     intentos: 0,
   };
-  const pendientes = store.get('ventasPendientes');
-  pendientes.push(pendiente);
-  store.set('ventasPendientes', pendientes);
+  // Lista nueva en vez de empujar sobre la que devuelve el store, como ya
+  // hacen `olvidarVentaFallida` y `eliminarVentaPendiente`. Si el `set` falla
+  // --disco lleno, permisos, el antivirus con el archivo tomado-- la cola tiene
+  // que quedar exactamente como estaba: una venta a medias, viva en memoria y
+  // ausente del disco, es peor que no haberla encolado, porque el llamador se
+  // entera del error mientras el estado dice otra cosa.
+  store.set('ventasPendientes', [...store.get('ventasPendientes'), pendiente]);
   return pendiente;
 }
 

@@ -653,6 +653,46 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     return cambiaron;
   }
 
+  /**
+   * Encola la venta para cuando vuelva la conexion. Devuelve si quedo guardada.
+   *
+   * ── POR QUE MIRA EL RESULTADO ────────────────────────────────────────────
+   *
+   * Antes no lo miraba. `guardarVenta` devuelve `Resultado<T>` como todo lo que
+   * cruza IPC, y ese resultado se descartaba: si la escritura fallaba --disco
+   * lleno, permisos, el antivirus con el archivo tomado, que en una PC de caja
+   * con Windows pasa-- el cajero igual leia «Venta guardada localmente», el
+   * carrito se limpiaba y la venta no quedaba en ningun lado. La plata ya
+   * estaba cobrada y la mercaderia ya habia salido del local.
+   *
+   * Era la unica rama del sistema que podia perder una venta en silencio, y es
+   * justo la que existe para no perderlas.
+   *
+   * Si falla, el carrito NO se limpia: es lo unico que todavia tiene las lineas
+   * de esa venta, y con el a la vista el cajero puede reintentar o anotarla a
+   * mano antes de seguir.
+   */
+  async function guardarOffline(payload: VentaInput): Promise<boolean> {
+    const guardada = await window.api.offline.guardarVenta(payload);
+    if (!guardada.ok) {
+      playError();
+      setMensajeError(
+        `NO se pudo registrar la venta, ni en linea ni localmente: ${guardada.mensaje}. ` +
+        'El carrito quedo como estaba: anotala a mano antes de seguir cobrando.',
+      );
+      return false;
+    }
+    // Primero limpiar, despues avisar. `resetearCarrito()` llama a
+    // `limpiarMensajes()`, asi que al reves --que es como estaba-- borraba el
+    // aviso que se acababa de poner: el carrito se vaciaba en silencio y el
+    // cajero no tenia forma de saber si la venta habia entrado en linea, si
+    // habia quedado en la cola, o si no habia pasado nada. Para eso existe la
+    // variante que no toca los mensajes.
+    resetearCarritoSinMsg();
+    setMensajeInfo('Venta guardada localmente (sin conexión). Se sincronizará automáticamente.');
+    return true;
+  }
+
   async function cobrar() {
     limpiarMensajes();
 
@@ -722,9 +762,10 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
       if (!respuesta.ok) {
         const offlineCheck = await window.api.offline.verificarConexion();
         if (offlineCheck.ok && !offlineCheck.data) {
-          await window.api.offline.guardarVenta(payload);
-          setMensajeInfo('Venta guardada localmente (sin conexión). Se sincronizará automáticamente.');
-          resetearCarrito();
+          // Se vuelve pase lo que pase: si no se pudo guardar, `guardarOffline`
+          // ya dejo el aviso en rojo, y el mensaje de abajo lo taparia con uno
+          // menos urgente.
+          await guardarOffline(payload);
           return;
         }
         setMensajeError(respuesta.mensaje);
@@ -780,9 +821,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
       playError();
       const offlineCheck = await window.api.offline.verificarConexion();
       if (offlineCheck.ok && !offlineCheck.data) {
-        await window.api.offline.guardarVenta(payload);
-        setMensajeInfo('Venta guardada localmente (sin conexión). Se sincronizará automáticamente.');
-        resetearCarrito();
+        await guardarOffline(payload);
         return;
       }
       setMensajeError('Error inesperado al registrar la venta.');
