@@ -44,7 +44,7 @@
     "electron:fix": "tsx scripts/fixElectron.ts",
     "supabase:gen-types": "tsx scripts/generarTiposSupabase.ts",
     "icono": "python scripts/generar-icono.py build",
-    "package": "npm run typecheck && electron-builder --win",
+    "package": "npm run build && electron-builder --win --publish never",
     "typecheck": "npm run typecheck:main && npm run typecheck:renderer",
     "typecheck:main": "tsc --noEmit -p tsconfig.json",
     "typecheck:renderer": "tsc --noEmit -p tsconfig.renderer.json",
