@@ -1,0 +1,34 @@
+// Para el editor, no para el build.
+//
+// ── QUÉ ARREGLA ─────────────────────────────────────────────────────────────
+//
+// VS Code marcaba en rojo cada `window.api` del renderer:
+//
+//     Property 'api' does not exist on type 'Window & typeof globalThis'.
+//
+// `window.api` lo declara `src/shared/types/api.ts` con `declare global`, y una
+// declaración así sólo existe si ese archivo forma parte del programa. VS Code
+// decide a qué programa pertenece un archivo subiendo carpetas hasta el primer
+// archivo llamado exactamente `tsconfig.json` --el de la raíz-- que a propósito
+// NO incluye `src/renderer`: el renderer necesita `jsx` y la librería del DOM
+// que el proceso main no tiene, y por eso vive en `tsconfig.renderer.json`.
+//
+// Ese nombre no es estándar, así que el editor nunca lo encontraba solo. Sin
+// proyecto, VS Code arma uno inferido con el archivo abierto y lo que importa,
+// donde `api.ts` no entra. De ahí el error.
+//
+// `npm run typecheck` nunca lo vio porque pasa el proyecto explícito con `-p`.
+//
+// ── QUÉ NO CAMBIA ───────────────────────────────────────────────────────────
+//
+// Nada del build. `typecheck:renderer` sigue corriendo contra
+// `tsconfig.renderer.json` y electron-vite compila igual que antes. Este
+// archivo sólo le dice al editor cuál de los dos proyectos mirar.
+{
+  "extends": "../../tsconfig.renderer.json",
+
+  // Se repiten en vez de heredarse: las rutas relativas de un `include` se
+  // resuelven contra el archivo donde están escritas, y acá ese archivo está
+  // dos niveles más abajo que el original.
+  "include": ["./**/*", "../shared/**/*"]
+}

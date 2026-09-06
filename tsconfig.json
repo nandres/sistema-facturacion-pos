@@ -16,9 +16,24 @@
       "@shared/*": ["src/shared/*"]
     }
   },
+  // Todo lo que corre en Node. Si un archivo .ts del proyecto no entra en
+  // ningun `include`, TypeScript no lo chequea nunca y VS Code lo abre en un
+  // "proyecto inferido" --el archivo suelto y lo que importa-- donde cualquier
+  // tipo global falta y todo aparece en rojo sin ser un error real.
+  //
+  // `scripts/` y los config de la raiz estaban en esa situacion: el editor los
+  // marcaba y `npm run typecheck` no los miraba. Ahora los cubre, que ademas es
+  // como se encontro que `probarRegistrarVenta.ts` mandaba ventas sin el
+  // desglose de pagos que la cabecera exige desde agosto.
+  //
+  // El renderer NO va aca a proposito: necesita `jsx` y la libreria del DOM.
+  // Vive en `tsconfig.renderer.json`, y `src/renderer/tsconfig.json` es el que
+  // le dice al editor cual de los dos mirar.
   "include": [
     "src/main/**/*",
     "src/preload/**/*",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "scripts/**/*",
+    "*.config.ts"
   ]
 }

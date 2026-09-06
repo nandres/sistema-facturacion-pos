@@ -1,7 +1,7 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { obtenerProducto, buscarProductos, actualizarCodigoBarras, listarProductos, actualizarProducto, crearProducto, eliminarProducto, type CrearProductoInput } from '../services/productoService';
-import { registrarVenta, VentaError, type VentaInput } from '../services/ventaService';
+import { registrarVenta, type VentaInput } from '../services/ventaService';
 import { imprimirTicket, imprimirNotaCredito, imprimirTicketZ, generarCodigoEAN13, imprimirEtiquetaCodigo, testImpresora } from '../services/ticketeraService';
 import { listarVentas, obtenerDetalleVenta, anularVenta } from '../services/ventaHistorialService';
 import { abrirCaja, cerrarCaja, obtenerArqueoAbierto, listarArqueos } from '../services/arqueoCajaService';
