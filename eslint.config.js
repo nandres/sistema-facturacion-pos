@@ -27,6 +27,9 @@ const globalsNode = {
 
 /** Globals del renderer (Chromium dentro de Electron). */
 const globalsBrowser = {
+  // La inyecta Vite con `define` a partir de package.json: en el codigo
+  // fuente no existe, en el bundle es un literal. Ver electron.vite.config.ts.
+  __APP_VERSION__: 'readonly',
   window: 'readonly',
   document: 'readonly',
   console: 'readonly',

@@ -362,7 +362,7 @@ export default function App(): JSX.Element {
               texto={conectado ? 'En línea' : 'Sin conexión'}
               detalle={conectado ? 'Conectado a Supabase' : 'Las ventas se guardan localmente hasta que vuelva la conexión'}
             />
-            <span className="text-[11px] text-ui-txt">v1.0.0</span>
+            <span className="text-[11px] text-ui-txt">v{__APP_VERSION__}</span>
           </>
         }
       />

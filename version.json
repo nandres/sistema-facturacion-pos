@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "url": "https://github.com/nandres/sistema-facturacion-pos/releases/download/v1.0.0/Sistema.Facturacion.Setup.1.0.0.exe",
+  "version": "1.1.0",
+  "url": "https://github.com/nandres/sistema-facturacion-pos/releases/download/v1.1.0/Sistema.Facturacion.Setup.1.1.0.exe",
   "sha256": "",
-  "changelog": "Version inicial"
+  "changelog": "Un solo instalador para cualquier comercio: la conexion con la base se configura desde la app. Electron 44."
 }

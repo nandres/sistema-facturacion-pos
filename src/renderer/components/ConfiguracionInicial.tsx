@@ -141,7 +141,7 @@ export default function ConfiguracionInicial({ onListo }: Props): JSX.Element {
 
       <div className="ui-barra-pie flex h-[26px] shrink-0 items-center justify-between px-2 text-[11px] text-ui-txs">
         <span>Sistema de Facturación y Stock</span>
-        <span className="num">v1.0.0</span>
+        <span className="num">v{__APP_VERSION__}</span>
       </div>
     </div>
   );
