@@ -20,6 +20,7 @@ import { creditoDisponible, buscarPorNombre } from '../../shared/clientes/fiado'
 import { useFiado, type CondicionVenta } from '../hooks/useFiado';
 import { usePagos } from '../hooks/usePagos';
 import { useEscaner } from '../hooks/useEscaner';
+import { useTicket } from '../hooks/useTicket';
 import {
   agregarLinea, cambiarCantidadLinea, fijarCantidad, quitarLineaDelCarrito, type LineaCarrito,
 } from '../../shared/carrito/lineas';
@@ -107,9 +108,14 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const [procesando, setProcesando] = useState(false);
   const [confirmandoCancelar, setConfirmandoCancelar] = useState(false);
   const [carritoRecuperado, setCarritoRecuperado] = useState(false);
-  const [datosTicketPreview, setDatosTicketPreview] = useState<DatosTicket | null>(null);
   const [ventaRetenida, setVentaRetenida] = useState<{ carrito: LineaCarrito[]; pagos: PagoInput[] } | null>(null);
-  const [errorTicket, setErrorTicket] = useState('');
+
+  // Vista previa del ticket, error de impresion y el semaforo de la ticketera.
+  const {
+    datosTicketPreview, setDatosTicketPreview,
+    errorTicket, setErrorTicket,
+    estadoImpresora,
+  } = useTicket();
   const [envasesList, setEnvasesList] = useState<Envase[]>([]);
   const [editorAbierto, setEditorAbierto] = useState(false);
   const [codigoCrearProducto, setCodigoCrearProducto] = useState<string | null>(null);
@@ -144,7 +150,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     buscarClientePorRuc,
   } = useFiado();
 
-  const [estadoImpresora, setEstadoImpresora] = useState<'ok' | 'sin-config' | 'consultando'>('consultando');
   const [nroCaja] = useState(leerNroCaja);
 
   // Linea sobre la que actuan F3 (cantidad) y F4 (anular). Arranca en la
@@ -199,13 +204,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     // Los clientes se cargan desde el arranque, no recien al fiar: el RUC de la
     // cabecera busca contra esta lista y tiene que responder en la primera venta.
     cargarClientesFiado();
-    // Estado de la ticketera: hay impresora elegida y Windows la sigue viendo.
-    // No imprime nada para averiguarlo; listarImpresoras ya devuelve la actual.
-    window.api.config.listarImpresoras().then((r) => {
-      if (!r.ok) { setEstadoImpresora('sin-config'); return; }
-      const { impresoras, actual } = r.data;
-      setEstadoImpresora(actual && impresoras.includes(actual) ? 'ok' : 'sin-config');
-    }).catch(() => setEstadoImpresora('sin-config'));
   }, []);
 
   // Red de seguridad: la seleccion no puede quedar apuntando fuera del carrito
