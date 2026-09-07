@@ -18,6 +18,9 @@ import {
 import {
   sumarPagos, calcularVuelto, calcularFaltante, determinarTipoPago, siguienteImporte,
 } from '../../shared/calculos/pagos';
+import {
+  creditoDisponible, buscarPorRuc, buscarPorNombre,
+} from '../../shared/clientes/fiado';
 
 interface Props {
   idUsuario: number;
@@ -177,11 +180,9 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     setIndiceFiadoSel(-1);
   }
 
-  /** Busca por RUC o por nombre sobre la lista de clientes ya cargada. */
+  /** Busca por RUC sobre la lista de clientes ya cargada. */
   function buscarClientePorRuc(ruc: string): ClienteFiado | undefined {
-    const t = ruc.trim().toLowerCase();
-    if (!t) return undefined;
-    return clientesFiado.find((c) => (c.ruc ?? '').toLowerCase() === t);
+    return buscarPorRuc(clientesFiado, ruc);
   }
 
   // Total, IVA y bases salen todos de `fiscal.ts`, de la misma definicion de
@@ -688,7 +689,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
       }
       const c = clientesFiado.find((cl) => cl.id_cliente === clienteFiadoSel);
       if (!c) { setMensajeError('Cliente no encontrado.'); return; }
-      const disponible = c.limite_credito - c.saldo_deudor;
+      const disponible = creditoDisponible(c);
       if (disponible < total) {
         setMensajeError(`El cliente supera su límite de crédito. Disponible: ${formatearGs(disponible)}`);
         return;
@@ -814,7 +815,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
 
   const hayCliente = razonSocial.trim() !== '' || rucCliente.trim() !== '';
   const clienteCredito = clientesFiado.find((c) => c.id_cliente === clienteFiadoSel);
-  const dispCredito = clienteCredito ? clienteCredito.limite_credito - clienteCredito.saldo_deudor : 0;
+  const dispCredito = clienteCredito ? creditoDisponible(clienteCredito) : 0;
   const subtotalBruto = carrito.reduce((a, l) => a + l.precio_unitario * l.cantidad, 0);
   const unidades = carrito.reduce((a, l) => a + l.cantidad, 0);
 
@@ -960,8 +961,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
                 setRazonSocial(v);
                 setClienteFiadoSel(null);
                 setIndiceFiadoSel(-1);
-                const t = v.toLowerCase().trim();
-                setResultadosFiado(t ? clientesFiado.filter((c) => c.nombre.toLowerCase().includes(t)) : []);
+                setResultadosFiado(buscarPorNombre(clientesFiado, v));
               }}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowDown') { e.preventDefault(); setIndiceFiadoSel((p) => Math.min(p + 1, resultadosFiado.length - 1)); return; }
@@ -993,7 +993,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
                   >
                     <span className="truncate text-[12px] font-semibold uppercase">{c.nombre}</span>
                     <span className="num shrink-0 text-[10.5px] opacity-75">
-                      {c.ruc || 's/RUC'} · disp. {formatearGs(c.limite_credito - c.saldo_deudor)}
+                      {c.ruc || 's/RUC'} · disp. {formatearGs(creditoDisponible(c))}
                     </span>
                   </button>
                 ))}
