@@ -11,7 +11,13 @@ import {
   TituloModulo, Vacio, type Operacion,
 } from '../ui';
 import type { ReactNode } from 'react';
-import { calcularIvaPorTasa, calcularBasePorTasa, descuentoLinea as descuentoDeLinea } from '../../shared/calculos/fiscal';
+import {
+  calcularIvaPorTasa, calcularBasePorTasa, calcularTotal, calcularIvaTotal,
+  calcularDescuentoTotal, descuentoLinea as descuentoDeLinea,
+} from '../../shared/calculos/fiscal';
+import {
+  sumarPagos, calcularVuelto, calcularFaltante, determinarTipoPago, siguienteImporte,
+} from '../../shared/calculos/pagos';
 
 interface Props {
   idUsuario: number;
@@ -63,19 +69,6 @@ interface LineaCarrito {
     cheque: 'Cheque',
   };
 
-// Determina tipo_pago a partir de los pagos.
-//
-// Antes esto terminaba en `return 'efectivo'` como cajón de sastre, y ahí caía
-// el cheque: una venta cobrada con cheque quedaba registrada como efectivo y
-// el cierre de caja reclamaba esa plata en el cajón. Ahora, con un solo medio,
-// el tipo es ese medio y punto.
-function determinarTipoPago(pagos: PagoInput[]): TipoPago {
-  const mediosUnicos = new Set(pagos.map((p) => p.medio_pago));
-  if (mediosUnicos.size === 0) return 'efectivo';
-  if (mediosUnicos.size === 1) return [...mediosUnicos][0];
-  return 'mixto';
-}
-
 // Cuanto esperamos como maximo por la revalidacion de precios antes de cobrar.
 // Pasado ese tiempo se cobra igual: la caja no se frena por la red.
 const TIMEOUT_REVALIDACION_MS = 800;
@@ -85,7 +78,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const [carrito, setCarrito] = useState<LineaCarrito[]>([]);
   const [codigoEscaneo, setCodigoEscaneo] = useState('');
   const [pagos, setPagos] = useState<PagoInput[]>([]);
-  const montoRecibido = useMemo(() => pagos.reduce((s, p) => s + p.monto, 0), [pagos]);
+  const montoRecibido = useMemo(() => sumarPagos(pagos), [pagos]);
   const [mensajeError, setMensajeError] = useState<string | null>(null);
   const [mensajeInfo, setMensajeInfo] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
@@ -191,20 +184,14 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     return clientesFiado.find((c) => (c.ruc ?? '').toLowerCase() === t);
   }
 
-  const total = useMemo(
-    () => carrito.reduce((acc, l) => acc + (l.precio_unitario - (l.envase && l.envase.trajo ? l.envase.precio : 0)) * l.cantidad, 0),
-    [carrito],
-  );
+  // Total, IVA y bases salen todos de `fiscal.ts`, de la misma definicion de
+  // «cuanto se cobra por esta linea». Estaban recalculados aca con la misma
+  // formula, que es justo la duplicacion que causo A-06.
+  const total = useMemo(() => calcularTotal(carrito), [carrito]);
 
-  const vuelto = useMemo(() => {
-    if (montoRecibido <= 0 || total <= 0) return 0;
-    return Math.max(0, montoRecibido - total);
-  }, [montoRecibido, total]);
+  const vuelto = useMemo(() => calcularVuelto(montoRecibido, total), [montoRecibido, total]);
 
-  const faltante = useMemo(() => {
-    if (total <= 0) return 0;
-    return Math.max(0, total - montoRecibido);
-  }, [montoRecibido, total]);
+  const faltante = useMemo(() => calcularFaltante(montoRecibido, total), [montoRecibido, total]);
 
   // El IVA se calcula sobre lo que se cobra, con el envase devuelto ya
   // descontado: la misma expresión que `total` y que `basePorTasa`.
@@ -217,10 +204,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   // un IVA calculado sobre 12.500.
   const ivaPorTasa = useMemo(() => calcularIvaPorTasa(carrito), [carrito]);
 
-  const ivaTotal = useMemo(
-    () => Object.values(ivaPorTasa).reduce((a, b) => a + b, 0),
-    [ivaPorTasa],
-  );
+  const ivaTotal = useMemo(() => calcularIvaTotal(carrito), [carrito]);
 
   // Desglose para el recuadro fiscal. En Paraguay el precio de gondola ya trae
   // el IVA adentro, asi que cada casillero lleva el importe cobrado --con IVA--
@@ -234,10 +218,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   // Descuento de la linea: hoy la unica fuente es el envase devuelto.
   const descuentoLinea = useCallback((l: LineaCarrito) => descuentoDeLinea(l), []);
 
-  const descuentoTotal = useMemo(
-    () => carrito.reduce((acc, l) => acc + descuentoLinea(l), 0),
-    [carrito, descuentoLinea],
-  );
+  const descuentoTotal = useMemo(() => calcularDescuentoTotal(carrito), [carrito]);
 
   useEffect(() => {
     inputEscaneoRef.current?.focus();
@@ -846,8 +827,8 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   // lote de React, y ahi el segundo pisaria al primero en vez de encadenarlo.
   const componerImporte = (transformar: (digitos: string) => string) =>
     setMontoCustomTexto((prev) => {
-      const n = parseInt(transformar(prev.replace(/\D/g, '')), 10);
-      return Number.isFinite(n) && n > 0 ? formatearGs(n) : '';
+      const n = siguienteImporte(prev, transformar);
+      return n > 0 ? formatearGs(n) : '';
     });
 
   const escribirImporte = (d: string) => componerImporte((dig) => dig + d);
