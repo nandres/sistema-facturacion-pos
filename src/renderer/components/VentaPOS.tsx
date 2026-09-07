@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Producto } from '../../shared/types/productos';
-import type { MedioPago, MedioPagoManual, TipoPago, VentaInput, DatosTicket, Envase, PagoInput, ClienteFiado } from '../../shared/types/ventas';
+import type { MedioPago, MedioPagoManual, TipoPago, VentaInput, DatosTicket, Envase, PagoInput } from '../../shared/types/ventas';
 import { formatearGs, formatearGsConPrefijo } from '../utils/formatoGuarani';
 import { useComercio } from '../contexts/ComercioContext';
 import ProductEditorModal from './ProductEditorModal';
@@ -18,9 +18,8 @@ import {
 import {
   sumarPagos, calcularVuelto, calcularFaltante, determinarTipoPago, siguienteImporte,
 } from '../../shared/calculos/pagos';
-import {
-  creditoDisponible, buscarPorRuc, buscarPorNombre,
-} from '../../shared/clientes/fiado';
+import { creditoDisponible, buscarPorNombre } from '../../shared/clientes/fiado';
+import { useFiado, type CondicionVenta } from '../hooks/useFiado';
 
 interface Props {
   idUsuario: number;
@@ -30,9 +29,6 @@ interface Props {
   /** Ventas guardadas localmente esperando sincronizacion. */
   pendientes: number;
 }
-
-/** Condicion de venta en el sentido del SET: contado o credito (fiado). */
-type CondicionVenta = 'contado' | 'credito';
 
 /**
  * Identificador del puesto de caja. Es por terminal, no por comercio, asi que
@@ -102,27 +98,37 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const [medioPagoSel, setMedioPagoSel] = useState<MedioPagoManual>('efectivo');
   const [editorAbierto, setEditorAbierto] = useState(false);
   const [codigoCrearProducto, setCodigoCrearProducto] = useState<string | null>(null);
-  const [modoFiado, setModoFiado] = useState(false);
-  const [clienteFiadoSel, setClienteFiadoSel] = useState<number | null>(null);
-  const [clientesFiado, setClientesFiado] = useState<ClienteFiado[]>([]);
-  const [resultadosFiado, setResultadosFiado] = useState<ClienteFiado[]>([]);
-  const [indiceFiadoSel, setIndiceFiadoSel] = useState(-1);
-  const [showCrearCliente, setShowCrearCliente] = useState(false);
-  const [nuevoClienteNombre, setNuevoClienteNombre] = useState('');
-  const [nuevoClienteRuc, setNuevoClienteRuc] = useState('');
-  const [nuevoClienteTel, setNuevoClienteTel] = useState('');
-  const [nuevoClienteLimite, setNuevoClienteLimite] = useState('');
   const [categorias, setCategorias] = useState<{ id_categoria: number; nombre: string; color: string }[]>([]);
   const [catSeleccionada, setCatSeleccionada] = useState<number | null>(null);
   const [productosPorCat, setProductosPorCat] = useState<Producto[]>([]);
   const [catCargando, setCatCargando] = useState(false);
   const [mostrarBrowser, setMostrarBrowser] = useState(false);
 
-  // Cabecera fiscal. RUC y razon social son el selector de cliente puesto
-  // arriba: cuando se elige un cliente se llenan solos, y al pasar la venta a
-  // credito son los que identifican a quien se le fia.
-  const [rucCliente, setRucCliente] = useState('');
-  const [razonSocial, setRazonSocial] = useState('');
+  // Venta a credito, cliente y cabecera fiscal. RUC y razon social son el
+  // selector de cliente puesto arriba: cuando se elige un cliente se llenan
+  // solos, y al pasar la venta a credito son los que identifican a quien se le
+  // fia. Por eso viven en el mismo hook que el panel de credito.
+  const {
+    modoFiado, setModoFiado,
+    clienteFiadoSel, setClienteFiadoSel,
+    clientesFiado,
+    resultadosFiado, setResultadosFiado,
+    indiceFiadoSel, setIndiceFiadoSel,
+    showCrearCliente, setShowCrearCliente,
+    nuevoClienteNombre, setNuevoClienteNombre,
+    nuevoClienteRuc, setNuevoClienteRuc,
+    nuevoClienteTel, setNuevoClienteTel,
+    nuevoClienteLimite, setNuevoClienteLimite,
+    rucCliente, setRucCliente,
+    razonSocial, setRazonSocial,
+    clienteSeleccionado,
+    condicionVenta,
+    cargarClientesFiado,
+    toggleFiado,
+    aplicarCliente,
+    buscarClientePorRuc,
+  } = useFiado();
+
   const [estadoImpresora, setEstadoImpresora] = useState<'ok' | 'sin-config' | 'consultando'>('consultando');
   const [nroCaja] = useState(leerNroCaja);
 
@@ -140,49 +146,11 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const timeoutBusqueda = useRef<ReturnType<typeof setTimeout>>();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  async function cargarClientesFiado() {
-    const r = await window.api.clientes.listar();
-    if (r.ok) setClientesFiado(r.data);
-  }
-
-  // Solo cambia la condicion de la venta. El cliente elegido sobrevive al
-  // cambio a proposito: una factura al contado tambien lleva RUC y razon
-  // social, y volver a credito no deberia obligar a buscarlo de nuevo. Para
-  // sacarlo esta el boton de quitar, en la cabecera.
-  function toggleFiado() {
-    if (modoFiado) {
-      setModoFiado(false);
-      setResultadosFiado([]);
-      setShowCrearCliente(false);
-    } else {
-      cargarClientesFiado();
-      setModoFiado(true);
-    }
-  }
-
-  // La condicion de venta no es estado propio: es la misma cosa que el modo
-  // fiado, mirada desde el vocabulario del SET. Derivarla evita que la cabecera
-  // diga "contado" mientras el panel de la derecha esta fiando.
-  const condicionVenta: CondicionVenta = modoFiado ? 'credito' : 'contado';
-
+  // Queda aca y no en useFiado porque devuelve el foco al input de escaneo,
+  // que es cosa de la caja y no del credito.
   function cambiarCondicion(cond: CondicionVenta) {
     if ((cond === 'credito') !== modoFiado) toggleFiado();
     refocarEscaneo();
-  }
-
-  // La cabecera fiscal y el panel de credito miran el mismo cliente: elegirlo
-  // de un lado tiene que verse del otro.
-  function aplicarCliente(c: ClienteFiado | null) {
-    setClienteFiadoSel(c ? c.id_cliente : null);
-    setRucCliente(c?.ruc ?? '');
-    setRazonSocial(c?.nombre ?? '');
-    setResultadosFiado([]);
-    setIndiceFiadoSel(-1);
-  }
-
-  /** Busca por RUC sobre la lista de clientes ya cargada. */
-  function buscarClientePorRuc(ruc: string): ClienteFiado | undefined {
-    return buscarPorRuc(clientesFiado, ruc);
   }
 
   // Total, IVA y bases salen todos de `fiscal.ts`, de la misma definicion de
@@ -687,7 +655,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
         setMensajeError('Seleccioná un cliente para la venta a crédito.');
         return;
       }
-      const c = clientesFiado.find((cl) => cl.id_cliente === clienteFiadoSel);
+      const c = clienteSeleccionado;
       if (!c) { setMensajeError('Cliente no encontrado.'); return; }
       const disponible = creditoDisponible(c);
       if (disponible < total) {
@@ -814,7 +782,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   }
 
   const hayCliente = razonSocial.trim() !== '' || rucCliente.trim() !== '';
-  const clienteCredito = clientesFiado.find((c) => c.id_cliente === clienteFiadoSel);
+  const clienteCredito = clienteSeleccionado;
   const dispCredito = clienteCredito ? creditoDisponible(clienteCredito) : 0;
   const subtotalBruto = carrito.reduce((a, l) => a + l.precio_unitario * l.cantidad, 0);
   const unidades = carrito.reduce((a, l) => a + l.cantidad, 0);
