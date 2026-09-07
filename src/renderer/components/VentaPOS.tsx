@@ -19,6 +19,7 @@ import { determinarTipoPago } from '../../shared/calculos/pagos';
 import { creditoDisponible, buscarPorNombre } from '../../shared/clientes/fiado';
 import { useFiado, type CondicionVenta } from '../hooks/useFiado';
 import { usePagos } from '../hooks/usePagos';
+import { useEscaner } from '../hooks/useEscaner';
 import {
   agregarLinea, cambiarCantidadLinea, fijarCantidad, quitarLineaDelCarrito, type LineaCarrito,
 } from '../../shared/carrito/lineas';
@@ -68,7 +69,21 @@ const TIMEOUT_REVALIDACION_MS = 800;
 export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendientes }: Props): JSX.Element {
   const { comercio, rucLinea } = useComercio();
   const [carrito, setCarrito] = useState<LineaCarrito[]>([]);
-  const [codigoEscaneo, setCodigoEscaneo] = useState('');
+
+  // El input de escaneo y sus dos modos. `refocarEscaneo` es lo que sostiene
+  // la regla de oro: el lector termina cada lectura con Enter y el input no
+  // puede perder el foco durante el cobro.
+  const {
+    codigoEscaneo, setCodigoEscaneo,
+    modoCantidad, setModoCantidad,
+    modoBascula, setModoBascula,
+    pesoPendiente, setPesoPendiente,
+    sugerencias, setSugerencias,
+    indiceSeleccionado, setIndiceSeleccionado,
+    dropdownAbierto, setDropdownAbierto,
+    inputEscaneoRef, timeoutBusqueda, dropdownRef,
+    refocarEscaneo,
+  } = useEscaner();
 
   // Total, IVA y bases salen todos de `fiscal.ts`, de la misma definicion de
   // «cuanto se cobra por esta linea». Estaban recalculados aca con la misma
@@ -91,14 +106,8 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const [mensajeInfo, setMensajeInfo] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
   const [confirmandoCancelar, setConfirmandoCancelar] = useState(false);
-  const [modoCantidad, setModoCantidad] = useState(false);
-  const [modoBascula, setModoBascula] = useState(false);
-  const [pesoPendiente, setPesoPendiente] = useState<number | null>(null);
   const [carritoRecuperado, setCarritoRecuperado] = useState(false);
   const [datosTicketPreview, setDatosTicketPreview] = useState<DatosTicket | null>(null);
-  const [sugerencias, setSugerencias] = useState<Producto[]>([]);
-  const [indiceSeleccionado, setIndiceSeleccionado] = useState(-1);
-  const [dropdownAbierto, setDropdownAbierto] = useState(false);
   const [ventaRetenida, setVentaRetenida] = useState<{ carrito: LineaCarrito[]; pagos: PagoInput[] } | null>(null);
   const [errorTicket, setErrorTicket] = useState('');
   const [envasesList, setEnvasesList] = useState<Envase[]>([]);
@@ -143,14 +152,11 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   // veces; las flechas mueven la seleccion cuando el desplegable esta cerrado.
   const [lineaSel, setLineaSel] = useState(-1);
 
-  const inputEscaneoRef = useRef<HTMLInputElement>(null);
   const inputRucRef = useRef<HTMLInputElement>(null);
   const cobrarRef = useRef(cobrar);
   cobrarRef.current = cobrar;
   const carritoRef = useRef(carrito);
   carritoRef.current = carrito;
-  const timeoutBusqueda = useRef<ReturnType<typeof setTimeout>>();
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Queda aca y no en useFiado porque devuelve el foco al input de escaneo,
   // que es cosa de la caja y no del credito.
@@ -335,12 +341,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     const timer = setTimeout(limpiarMensajes, 6000);
     return () => clearTimeout(timer);
   }, [mensajeError, mensajeInfo]);
-
-  const refocarEscaneo = useCallback(() => {
-    // setTimeout para correr después del render que pueda haber cambiado
-    // el árbol de elementos (botones que aparecen/desaparecen).
-    setTimeout(() => inputEscaneoRef.current?.focus(), 0);
-  }, []);
 
   function limpiarMensajes() {
     setMensajeError(null);
