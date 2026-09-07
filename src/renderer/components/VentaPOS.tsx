@@ -20,8 +20,9 @@ import { creditoDisponible, buscarPorNombre } from '../../shared/clientes/fiado'
 import { useFiado, type CondicionVenta } from '../hooks/useFiado';
 import { usePagos } from '../hooks/usePagos';
 import {
-  agregarLinea, cambiarCantidadLinea, quitarLineaDelCarrito, type LineaCarrito,
+  agregarLinea, cambiarCantidadLinea, fijarCantidad, quitarLineaDelCarrito, type LineaCarrito,
 } from '../../shared/carrito/lineas';
+import { pesoDesdeGramos } from '../../shared/carrito/bascula';
 
 interface Props {
   idUsuario: number;
@@ -370,17 +371,7 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     if (modoCantidad) {
       const cantidad = parseInt(codigo, 10);
       if (Number.isFinite(cantidad) && cantidad > 0) {
-        setCarrito((prev) => {
-          if (prev.length === 0) return prev;
-          // Sobre la linea seleccionada. Sin seleccion movida a mano cae en la
-          // ultima, que es como se comportaba cuando `*` era la unica entrada.
-          const idx = lineaSel >= 0 && lineaSel < prev.length ? lineaSel : prev.length - 1;
-          const objetivo = prev[idx];
-          const nuevaCantidad = Math.min(cantidad, objetivo.stock_disponible);
-          const copia = [...prev];
-          copia[idx] = { ...objetivo, cantidad: nuevaCantidad };
-          return copia;
-        });
+        setCarrito((prev) => fijarCantidad(prev, lineaSel, cantidad));
         setMensajeInfo(`Cantidad actualizada a ${cantidad}.`);
       }
       setModoCantidad(false);
@@ -390,9 +381,8 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
 
     // Modo báscula: el valor ingresado es el peso en gramos
     if (modoBascula) {
-      const pesoGramos = parseInt(codigo, 10);
-      if (Number.isFinite(pesoGramos) && pesoGramos > 0) {
-        const pesoKg = pesoGramos / 1000;
+      const pesoKg = pesoDesdeGramos(codigo);
+      if (pesoKg !== null) {
         setPesoPendiente(pesoKg);
         setMensajeInfo(`Peso capturado: ${pesoKg.toFixed(3)} kg. Escanee el producto.`);
         setCodigoEscaneo('');

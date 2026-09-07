@@ -120,6 +120,30 @@ export function cambiarCantidadLinea(
   return { ok: true, carrito: copia };
 }
 
+/**
+ * Fija la cantidad de una línea de golpe. Es lo que hace el modo cantidad (`*`).
+ *
+ * Actúa sobre `lineaSel`, y si esa selección no apunta a nada cae en la última
+ * línea, que es como se comportaba cuando `*` era la única entrada.
+ *
+ * **Recorta contra el stock en vez de rechazar**: tipear 50 sobre un producto
+ * con 8 disponibles deja 8. Es distinto de `cambiarCantidadLinea`, que frena
+ * con un mensaje, y es a propósito: el cajero ya tiene el producto en la mano.
+ */
+export function fijarCantidad(
+  carrito: readonly LineaCarrito[],
+  lineaSel: number,
+  cantidad: number,
+): LineaCarrito[] {
+  if (carrito.length === 0) return [...carrito];
+
+  const idx = lineaSel >= 0 && lineaSel < carrito.length ? lineaSel : carrito.length - 1;
+  const objetivo = carrito[idx];
+  const copia = [...carrito];
+  copia[idx] = { ...objetivo, cantidad: Math.min(cantidad, objetivo.stock_disponible) };
+  return copia;
+}
+
 /** Saca una línea del carrito. Un código que no está no hace nada. */
 export function quitarLineaDelCarrito(
   carrito: readonly LineaCarrito[],

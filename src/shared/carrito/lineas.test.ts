@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   agregarLinea,
   cambiarCantidadLinea,
+  fijarCantidad,
   quitarLineaDelCarrito,
   type LineaCarrito,
 } from './lineas';
@@ -140,6 +141,47 @@ describe('cambiarCantidadLinea', () => {
     const original = [linea({ cantidad: 2 })];
     cambiarCantidadLinea(original, '7790001', 1);
     expect(original[0].cantidad).toBe(2);
+  });
+});
+
+describe('fijarCantidad — el modo cantidad (*)', () => {
+  const dos = [
+    linea({ codigo_barras: '7790999', nombre: 'Azúcar', cantidad: 1, stock_disponible: 20 }),
+    linea({ cantidad: 1, stock_disponible: 8 }),
+  ];
+
+  it('fija la cantidad de la linea seleccionada', () => {
+    const r = fijarCantidad(dos, 0, 5);
+    expect(r[0].cantidad).toBe(5);
+    expect(r[1].cantidad).toBe(1);
+  });
+
+  it('sin seleccion valida cae en la ultima linea', () => {
+    // Es como se comportaba cuando `*` era la unica entrada.
+    expect(fijarCantidad(dos, -1, 3)[1].cantidad).toBe(3);
+  });
+
+  it('una seleccion fuera de rango tambien cae en la ultima', () => {
+    expect(fijarCantidad(dos, 99, 3)[1].cantidad).toBe(3);
+  });
+
+  it('recorta contra el stock en vez de rechazar', () => {
+    // Distinto de cambiarCantidadLinea, que frena con un mensaje: aca el cajero
+    // ya tiene el producto en la mano, asi que se le da lo que hay.
+    expect(fijarCantidad(dos, 1, 50)[1].cantidad).toBe(8);
+  });
+
+  it('justo el stock entra entero', () => {
+    expect(fijarCantidad(dos, 1, 8)[1].cantidad).toBe(8);
+  });
+
+  it('con el carrito vacio no hace nada', () => {
+    expect(fijarCantidad([], 0, 5)).toEqual([]);
+  });
+
+  it('no toca el carrito que recibe', () => {
+    fijarCantidad(dos, 0, 9);
+    expect(dos[0].cantidad).toBe(1);
   });
 });
 

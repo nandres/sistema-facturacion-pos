@@ -8,8 +8,11 @@ import { defineConfig } from 'vitest/config';
 // `VentaPOS` a `shared/calculos/fiscal.ts`, que es donde se prueba.
 export default defineConfig({
   test: {
+    // Entorno `node` por defecto. Las pruebas de pantalla piden `jsdom` en su
+    // propio encabezado (`@vitest-environment jsdom`), porque montar un DOM
+    // para probar aritmética sería pagar por nada.
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     reporters: ['default'],
 
     // ── Zona horaria fija ──────────────────────────────────────────────────
