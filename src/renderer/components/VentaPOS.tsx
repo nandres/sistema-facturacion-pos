@@ -19,6 +19,9 @@ import { determinarTipoPago } from '../../shared/calculos/pagos';
 import { creditoDisponible, buscarPorNombre } from '../../shared/clientes/fiado';
 import { useFiado, type CondicionVenta } from '../hooks/useFiado';
 import { usePagos } from '../hooks/usePagos';
+import {
+  agregarLinea, cambiarCantidadLinea, quitarLineaDelCarrito, type LineaCarrito,
+} from '../../shared/carrito/lineas';
 
 interface Props {
   idUsuario: number;
@@ -44,16 +47,6 @@ function leerNroCaja(): string {
 }
 // teclado del cajero solo escribe enteros vía botones +/-, no escribe a
 // mano. Para productos por peso, la balanza debería precargar el código.
-interface LineaCarrito {
-  codigo_barras: string;
-  nombre: string;
-  precio_unitario: number;
-  cantidad: number;
-  stock_disponible: number;
-  iva: number;
-  envase?: { id_envase: number; nombre: string; precio: number; trajo: boolean };
-}
-
 // Denominaciones rápidas más usadas en caja de supermercado paraguayo.
 // Cubren ~85% de los pagos en efectivo de tickets chicos/medianos.
   const DENOMINACIONES_RAPIDAS = [20000, 50000, 100000] as const;
@@ -449,59 +442,33 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     const idxPrevio = carrito.findIndex((l) => l.codigo_barras === producto.codigo_barras);
     setLineaSel(idxPrevio === -1 ? carrito.length : idxPrevio);
 
+    // Se calcula sobre `prev`, no sobre `carrito`: el lector dispara rapido y
+    // dos lecturas seguidas pueden caer en el mismo lote de React.
     setCarrito((prev) => {
-      const idx = prev.findIndex((l) => l.codigo_barras === producto.codigo_barras);
-      if (idx === -1) {
-        return [
-          ...prev,
-          {
-            codigo_barras: producto.codigo_barras,
-            nombre: producto.nombre,
-            precio_unitario: producto.precio_venta,
-            cantidad: cantidadBascula,
-            stock_disponible: producto.stock,
-            iva: producto.iva,
-          },
-        ];
-      }
-      const existente = prev[idx];
-      if (existente.cantidad + cantidadBascula > existente.stock_disponible) {
-        setMensajeError(
-          `Stock insuficiente para ${existente.nombre} (disponible: ${existente.stock_disponible}).`,
-        );
+      const r = agregarLinea(prev, producto, cantidadBascula);
+      if (!r.ok) {
+        setMensajeError(`Stock insuficiente para ${r.nombre} (disponible: ${r.disponible}).`);
         return prev;
       }
-      const copia = [...prev];
-      copia[idx] = { ...existente, cantidad: existente.cantidad + cantidadBascula };
-      return copia;
+      return r.carrito;
     });
     setMensajeInfo(`Agregado: ${producto.nombre}`);
   }
 
   function cambiarCantidad(codigo: string, delta: number) {
     setCarrito((prev) => {
-      const idx = prev.findIndex((l) => l.codigo_barras === codigo);
-      if (idx === -1) return prev;
-      const linea = prev[idx];
-      const nuevaCantidad = linea.cantidad + delta;
-      if (nuevaCantidad <= 0) {
-        return prev.filter((_, i) => i !== idx);
-      }
-      if (nuevaCantidad > linea.stock_disponible) {
-        setMensajeError(
-          `Stock insuficiente para ${linea.nombre} (disponible: ${linea.stock_disponible}).`,
-        );
+      const r = cambiarCantidadLinea(prev, codigo, delta);
+      if (!r.ok) {
+        setMensajeError(`Stock insuficiente para ${r.nombre} (disponible: ${r.disponible}).`);
         return prev;
       }
-      const copia = [...prev];
-      copia[idx] = { ...linea, cantidad: nuevaCantidad };
-      return copia;
+      return r.carrito;
     });
     refocarEscaneo();
   }
 
   function quitarLinea(codigo: string) {
-    setCarrito((prev) => prev.filter((l) => l.codigo_barras !== codigo));
+    setCarrito((prev) => quitarLineaDelCarrito(prev, codigo));
     refocarEscaneo();
   }
 
