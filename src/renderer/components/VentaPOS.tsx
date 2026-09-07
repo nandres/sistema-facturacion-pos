@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Producto } from '../../shared/types/productos';
-import type { MedioPago, MedioPagoManual, TipoPago, VentaInput, DatosTicket, Envase, PagoInput } from '../../shared/types/ventas';
+import type { MedioPagoManual, TipoPago, VentaInput, DatosTicket, Envase, PagoInput } from '../../shared/types/ventas';
 import { formatearGs, formatearGsConPrefijo } from '../utils/formatoGuarani';
 import { useComercio } from '../contexts/ComercioContext';
 import ProductEditorModal from './ProductEditorModal';
@@ -15,11 +15,10 @@ import {
   calcularIvaPorTasa, calcularBasePorTasa, calcularTotal, calcularIvaTotal,
   calcularDescuentoTotal, descuentoLinea as descuentoDeLinea,
 } from '../../shared/calculos/fiscal';
-import {
-  sumarPagos, calcularVuelto, calcularFaltante, determinarTipoPago, siguienteImporte,
-} from '../../shared/calculos/pagos';
+import { determinarTipoPago } from '../../shared/calculos/pagos';
 import { creditoDisponible, buscarPorNombre } from '../../shared/clientes/fiado';
 import { useFiado, type CondicionVenta } from '../hooks/useFiado';
+import { usePagos } from '../hooks/usePagos';
 
 interface Props {
   idUsuario: number;
@@ -76,8 +75,24 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const { comercio, rucLinea } = useComercio();
   const [carrito, setCarrito] = useState<LineaCarrito[]>([]);
   const [codigoEscaneo, setCodigoEscaneo] = useState('');
-  const [pagos, setPagos] = useState<PagoInput[]>([]);
-  const montoRecibido = useMemo(() => sumarPagos(pagos), [pagos]);
+
+  // Total, IVA y bases salen todos de `fiscal.ts`, de la misma definicion de
+  // «cuanto se cobra por esta linea». Estaban recalculados aca con la misma
+  // formula, que es justo la duplicacion que causo A-06.
+  const total = useMemo(() => calcularTotal(carrito), [carrito]);
+
+  // Lo que el cliente entrega. Recibe `total` porque los pagos no saben sumar
+  // productos: solo comparan contra lo que hay que cobrar.
+  const {
+    pagos, setPagos,
+    medioPagoSel, setMedioPagoSel,
+    montoCustomTexto, setMontoCustomTexto,
+    montoRecibido, vuelto, faltante,
+    agregarPago, eliminarPago, agregarPagoCustom,
+    digitosImporte, escribirImporte, borrarImporte, sumarImporte,
+    faltaProyectado, vueltoProyectado,
+  } = usePagos(total);
+
   const [mensajeError, setMensajeError] = useState<string | null>(null);
   const [mensajeInfo, setMensajeInfo] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
@@ -93,9 +108,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const [ventaRetenida, setVentaRetenida] = useState<{ carrito: LineaCarrito[]; pagos: PagoInput[] } | null>(null);
   const [errorTicket, setErrorTicket] = useState('');
   const [envasesList, setEnvasesList] = useState<Envase[]>([]);
-  // Solo los medios que el cajero elige a mano: `credito` lo pone el sistema
-  // cuando la venta va a la cuenta corriente, no se ofrece en el selector.
-  const [medioPagoSel, setMedioPagoSel] = useState<MedioPagoManual>('efectivo');
   const [editorAbierto, setEditorAbierto] = useState(false);
   const [codigoCrearProducto, setCodigoCrearProducto] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<{ id_categoria: number; nombre: string; color: string }[]>([]);
@@ -152,15 +164,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     if ((cond === 'credito') !== modoFiado) toggleFiado();
     refocarEscaneo();
   }
-
-  // Total, IVA y bases salen todos de `fiscal.ts`, de la misma definicion de
-  // «cuanto se cobra por esta linea». Estaban recalculados aca con la misma
-  // formula, que es justo la duplicacion que causo A-06.
-  const total = useMemo(() => calcularTotal(carrito), [carrito]);
-
-  const vuelto = useMemo(() => calcularVuelto(montoRecibido, total), [montoRecibido, total]);
-
-  const faltante = useMemo(() => calcularFaltante(montoRecibido, total), [montoRecibido, total]);
 
   // El IVA se calcula sobre lo que se cobra, con el envase devuelto ya
   // descontado: la misma expresión que `total` y que `basePorTasa`.
@@ -544,24 +547,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     resetear(false);
   }
 
-  function agregarPago(medio_pago: MedioPago, monto: number) {
-    if (monto <= 0) return;
-    setPagos((prev) => [...prev, { medio_pago, monto }]);
-  }
-
-  function eliminarPago(idx: number) {
-    setPagos((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  const [montoCustomTexto, setMontoCustomTexto] = useState('');
-  function agregarPagoCustom() {
-    const soloDigitos = montoCustomTexto.replace(/\D/g, '');
-    const monto = parseInt(soloDigitos, 10);
-    if (monto <= 0) return;
-    setPagos((prev) => [...prev, { medio_pago: medioPagoSel, monto }]);
-    setMontoCustomTexto('');
-  }
-
   // Relee de la base los productos del carrito y corrige precio y stock si
   // cambiaron desde que se agrego la linea. Devuelve los nombres que cambiaron.
   //
@@ -786,34 +771,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const dispCredito = clienteCredito ? creditoDisponible(clienteCredito) : 0;
   const subtotalBruto = carrito.reduce((a, l) => a + l.precio_unitario * l.cantidad, 0);
   const unidades = carrito.reduce((a, l) => a + l.cantidad, 0);
-
-  // El teclado en pantalla escribe sobre el mismo campo que el teclado físico.
-  // Es presentación, no cálculo: reformatea y delega en agregarPagoCustom().
-  const digitosImporte = montoCustomTexto.replace(/\D/g, '');
-
-  // Van con el actualizador funcional, no leyendo `montoCustomTexto` del
-  // render: dos toques seguidos en una pantalla tactil pueden caer en el mismo
-  // lote de React, y ahi el segundo pisaria al primero en vez de encadenarlo.
-  const componerImporte = (transformar: (digitos: string) => string) =>
-    setMontoCustomTexto((prev) => {
-      const n = siguienteImporte(prev, transformar);
-      return n > 0 ? formatearGs(n) : '';
-    });
-
-  const escribirImporte = (d: string) => componerImporte((dig) => dig + d);
-  const borrarImporte = () => componerImporte((dig) => dig.slice(0, -1));
-
-  // Los botones de denominacion suman sobre lo que ya hay, que es como se
-  // cuenta plata en el mostrador: dos billetes de 50.000 son 100.000.
-  const sumarImporte = (monto: number) =>
-    componerImporte((dig) => String((parseInt(dig, 10) || 0) + monto));
-
-  // Lo que quedaria si se agregara el importe en curso. Es proyeccion, no
-  // estado: sirve para que el cajero vea el efecto antes de confirmar.
-  const importeEnCurso = parseInt(digitosImporte, 10) || 0;
-  const recibidoProyectado = montoRecibido + importeEnCurso;
-  const faltaProyectado = Math.max(0, total - recibidoProyectado);
-  const vueltoProyectado = Math.max(0, recibidoProyectado - total);
 
   const operaciones: Operacion[] = [
     {
