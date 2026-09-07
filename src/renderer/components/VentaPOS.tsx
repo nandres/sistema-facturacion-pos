@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Producto } from '../../shared/types/productos';
-import type { MedioPagoManual, TipoPago, VentaInput, DatosTicket, Envase, PagoInput } from '../../shared/types/ventas';
+import type { MedioPagoManual, TipoPago, VentaInput, DatosTicket, PagoInput } from '../../shared/types/ventas';
 import { formatearGs, formatearGsConPrefijo } from '../utils/formatoGuarani';
 import { useComercio } from '../contexts/ComercioContext';
 import ProductEditorModal from './ProductEditorModal';
@@ -11,15 +11,12 @@ import {
   TituloModulo, Vacio, type Operacion,
 } from '../ui';
 import type { ReactNode } from 'react';
-import {
-  calcularIvaPorTasa, calcularBasePorTasa, calcularTotal, calcularIvaTotal,
-  calcularDescuentoTotal, descuentoLinea as descuentoDeLinea,
-} from '../../shared/calculos/fiscal';
 import { determinarTipoPago } from '../../shared/calculos/pagos';
 import { creditoDisponible, buscarPorNombre } from '../../shared/clientes/fiado';
 import { useFiado, type CondicionVenta } from '../hooks/useFiado';
 import { usePagos } from '../hooks/usePagos';
 import { useEscaner } from '../hooks/useEscaner';
+import { useCarrito } from '../hooks/useCarrito';
 import { useTicket } from '../hooks/useTicket';
 import {
   agregarLinea, cambiarCantidadLinea, fijarCantidad, quitarLineaDelCarrito, type LineaCarrito,
@@ -69,7 +66,17 @@ const TIMEOUT_REVALIDACION_MS = 800;
 
 export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendientes }: Props): JSX.Element {
   const { comercio, rucLinea } = useComercio();
-  const [carrito, setCarrito] = useState<LineaCarrito[]>([]);
+  // El carrito y todo lo que se deduce de el. Total, IVA y bases salen los tres
+  // de fiscal.ts, de la misma definicion de «cuanto se cobra por esta linea»:
+  // recalcularlos a mano fue lo que causo A-06.
+  const {
+    carrito, setCarrito, carritoRef,
+    lineaSel, setLineaSel,
+    envasesList,
+    total, ivaPorTasa, ivaTotal, basePorTasa,
+    descuentoLinea, descuentoTotal,
+    subtotalBruto, unidades,
+  } = useCarrito();
 
   // El input de escaneo y sus dos modos. `refocarEscaneo` es lo que sostiene
   // la regla de oro: el lector termina cada lectura con Enter y el input no
@@ -85,11 +92,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     inputEscaneoRef, timeoutBusqueda, dropdownRef,
     refocarEscaneo,
   } = useEscaner();
-
-  // Total, IVA y bases salen todos de `fiscal.ts`, de la misma definicion de
-  // «cuanto se cobra por esta linea». Estaban recalculados aca con la misma
-  // formula, que es justo la duplicacion que causo A-06.
-  const total = useMemo(() => calcularTotal(carrito), [carrito]);
 
   // Lo que el cliente entrega. Recibe `total` porque los pagos no saben sumar
   // productos: solo comparan contra lo que hay que cobrar.
@@ -116,7 +118,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     errorTicket, setErrorTicket,
     estadoImpresora,
   } = useTicket();
-  const [envasesList, setEnvasesList] = useState<Envase[]>([]);
   const [editorAbierto, setEditorAbierto] = useState(false);
   const [codigoCrearProducto, setCodigoCrearProducto] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<{ id_categoria: number; nombre: string; color: string }[]>([]);
@@ -155,13 +156,9 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   // Linea sobre la que actuan F3 (cantidad) y F4 (anular). Arranca en la
   // ultima escaneada, que es lo que el cajero quiere corregir el 99% de las
   // veces; las flechas mueven la seleccion cuando el desplegable esta cerrado.
-  const [lineaSel, setLineaSel] = useState(-1);
-
   const inputRucRef = useRef<HTMLInputElement>(null);
   const cobrarRef = useRef(cobrar);
   cobrarRef.current = cobrar;
-  const carritoRef = useRef(carrito);
-  carritoRef.current = carrito;
 
   // Queda aca y no en useFiado porque devuelve el foco al input de escaneo,
   // que es cosa de la caja y no del credito.
@@ -170,47 +167,14 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
     refocarEscaneo();
   }
 
-  // El IVA se calcula sobre lo que se cobra, con el envase devuelto ya
-  // descontado: la misma expresión que `total` y que `basePorTasa`.
-  //
-  // Antes usaba `precio_unitario * cantidad` sin descontar el envase, así que
-  // el comprobante sobredeclaraba IVA cada vez que entraba uno. Con una
-  // gaseosa de 12.500 al 10% y envase de 3.000 devuelto se cobran 9.500 y el
-  // ticket declaraba 1.136 en vez de 863; el recuadro fiscal quedaba
-  // contradictorio consigo mismo, mostrando «Gravadas 10%: 9.500» al lado de
-  // un IVA calculado sobre 12.500.
-  const ivaPorTasa = useMemo(() => calcularIvaPorTasa(carrito), [carrito]);
-
-  const ivaTotal = useMemo(() => calcularIvaTotal(carrito), [carrito]);
-
-  // Desglose para el recuadro fiscal. En Paraguay el precio de gondola ya trae
-  // el IVA adentro, asi que cada casillero lleva el importe cobrado --con IVA--
-  // y el IVA es la porcion de ese importe que le toca a la DNIT.
-  //
-  // Se calcula con la misma expresion que `total`, descuento de envase incluido,
-  // para que Exentas + Gravadas 5% + Gravadas 10% de exactamente el TOTAL A
-  // PAGAR. Es lo primero que cualquiera cruza al mirar el recuadro.
-  const basePorTasa = useMemo(() => calcularBasePorTasa(carrito), [carrito]);
-
-  // Descuento de la linea: hoy la unica fuente es el envase devuelto.
-  const descuentoLinea = useCallback((l: LineaCarrito) => descuentoDeLinea(l), []);
-
-  const descuentoTotal = useMemo(() => calcularDescuentoTotal(carrito), [carrito]);
-
   useEffect(() => {
     inputEscaneoRef.current?.focus();
-    window.api.envases.listar().then((r) => { if (r.ok) setEnvasesList(r.data); });
     window.api.categorias.listar().then((r) => { if (r.ok) setCategorias(r.data); });
     // Los clientes se cargan desde el arranque, no recien al fiar: el RUC de la
     // cabecera busca contra esta lista y tiene que responder en la primera venta.
     cargarClientesFiado();
   }, []);
 
-  // Red de seguridad: la seleccion no puede quedar apuntando fuera del carrito
-  // despues de anular una linea. Quien agrega la mueve explicitamente.
-  useEffect(() => {
-    setLineaSel((prev) => (prev >= carrito.length ? carrito.length - 1 : prev));
-  }, [carrito.length]);
 
   // Recuperar carrito guardado al montar
   useEffect(() => {
@@ -724,8 +688,6 @@ export default function VentaPOS({ idUsuario, nombreCajero, conectado, pendiente
   const hayCliente = razonSocial.trim() !== '' || rucCliente.trim() !== '';
   const clienteCredito = clienteSeleccionado;
   const dispCredito = clienteCredito ? creditoDisponible(clienteCredito) : 0;
-  const subtotalBruto = carrito.reduce((a, l) => a + l.precio_unitario * l.cantidad, 0);
-  const unidades = carrito.reduce((a, l) => a + l.cantidad, 0);
 
   const operaciones: Operacion[] = [
     {
