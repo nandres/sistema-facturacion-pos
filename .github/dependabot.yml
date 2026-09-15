@@ -1,9 +1,9 @@
 version: 2
 
 # Electron viaja dentro del instalador aunque figure en devDependencies: sus
-# CVE le llegan al usuario final. Con la version 31 fuera de soporte, esto es
-# lo que va a avisar cuando haya que saltar, en vez de enterarse por un
-# `npm audit` que alguien corra por casualidad.
+# CVE le llegan al usuario final. Esto es lo que avisa cuando hay que saltar,
+# en vez de enterarse por un `npm audit` que alguien corra por casualidad.
+# (El salto de la 31 --que estaba fuera de soporte-- a la 44 ya se hizo.)
 updates:
   - package-ecosystem: npm
     directory: /
@@ -20,6 +20,38 @@ updates:
         update-types: [minor, patch]
     commit-message:
       prefix: 'chore(deps)'
+
+    # Majors rechazados con motivo, no por pereza.
+    #
+    # Estaban puestos como `@dependabot ignore this major version` en los PR
+    # cerrados, que es estado interno de Dependabot: si el repositorio se
+    # recrea, se pierden y los cuatro vuelven el lunes siguiente. Acá quedan
+    # versionados, y de paso se lee por que.
+    #
+    # Se ignora la serie mayor concreta, no "todos los majors": cuando salga
+    # vite 9 queremos enterarnos.
+    ignore:
+      # electron-vite 5 --la ultima-- declara el peer `vite ^5 || ^6 || ^7`.
+      # El techo del stack es vite 7 hasta que electron-vite se mueva.
+      - dependency-name: 'vite'
+        versions: ['8.x']
+
+      # plugin-react 6 exige `vite ^8`, que por lo de arriba no entra. La 5.x
+      # acepta de `vite ^4.2` a `^8`, asi que no bloquea nada.
+      - dependency-name: '@vitejs/plugin-react'
+        versions: ['6.x']
+
+      # typescript-eslint declara `typescript >=4.8.4 <6.1.0` y no existe
+      # todavia ninguna version suya que soporte TS 7.
+      - dependency-name: 'typescript'
+        versions: ['7.x']
+
+      # Tailwind 4 pasa la configuracion a CSS (`@theme`). `tailwind.config.js`
+      # tiene la paleta industrial de la caja con contrastes medidos, y ninguna
+      # prueba avisa si uno se rompe. Postergado por riesgo visual, no por
+      # incompatibilidad: typecheck, lint y las pruebas pasan con la 4.
+      - dependency-name: 'tailwindcss'
+        versions: ['4.x']
 
   - package-ecosystem: github-actions
     directory: /
