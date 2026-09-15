@@ -48,15 +48,16 @@ por producto, así que el margen sale del dato real y no de un porcentaje fijo.*
 
 | Capa | Tecnología |
 |---|---|
-| Escritorio | Electron 31 |
+| Escritorio | Electron 44 |
 | Interfaz | React 18 + TypeScript + Tailwind |
 | Backend | Node.js (proceso main de Electron) |
 | Base de datos | Supabase (PostgreSQL) |
 | Empaquetado | electron-vite + electron-builder |
+| Pruebas | Vitest + Testing Library |
 
 ## Requisitos
 
-- Node.js 18 o superior
+- Node.js 22 o superior (lo que piden vite 7 y vitest 5)
 - Windows 10/11 (la impresión ESC/POS escribe directo al puerto)
 - Un proyecto de Supabase
 
@@ -67,7 +68,9 @@ por producto, así que el margen sale del dato real y no de un porcentaje fijo.*
 El instalador es uno solo y sirve para cualquier cliente: no lleva adentro
 ninguna credencial ni ningún dato del negocio.
 
-1. Ejecutar el `.exe`.
+1. Descargar el `.exe` de la
+   [última versión](https://github.com/nandres/sistema-facturacion-pos/releases/latest)
+   y ejecutarlo.
 2. La primera vez, la aplicación pide la **dirección del proyecto Supabase** y
    la **clave de servicio**. Están en el panel de Supabase del comercio, en
    *Project Settings → API*. La clave queda guardada en esa máquina, cifrada
@@ -120,7 +123,7 @@ de Supabase o con la CLI.
 npm run dev          # levanta la app en desarrollo
 npm run typecheck    # chequea main Y renderer
 npm run lint         # ESLint 9 (flat config)
-npm test             # vitest: guaraní, IVA, roles, conexión y bytes del ticket
+npm test             # vitest: IVA, vuelto, crédito, carrito, ticket y la caja
 npm run build        # corre typecheck primero
 npm run package      # genera el instalador
 ```
@@ -132,7 +135,7 @@ sin esto un error del renderer no aparece hasta ejecutar la aplicación.
 
 ```
 src/
-├── main/       proceso principal — services/ (negocio + Supabase), ipc/ (76 canales)
+├── main/       proceso principal — services/ (negocio + Supabase), ipc/ (79 canales)
 ├── preload/    puente contextBridge que expone window.api
 ├── renderer/   React — components/ (pantallas), hooks/, contexts/
 └── shared/     tipos y utilidades que cruzan procesos
@@ -174,8 +177,9 @@ El repositorio **es** el canal de actualizaciones: cada terminal instalada lee
 ese archivo no rompe nada —el actualizador exige un `sha256` válido y aborta si
 no lo tiene— pero tampoco actualiza a nadie.
 
-1. `git tag v1.1.0 && git push --tags` dispara `.github/workflows/release.yml`,
-   que construye el instalador en Windows y publica un Release **en borrador**.
+1. `git tag vX.Y.Z && git push origin vX.Y.Z` dispara
+   `.github/workflows/release.yml`, que construye el instalador en Windows y
+   publica un Release **en borrador**.
 2. El resumen del workflow imprime el `sha256` del `.exe`.
 3. Copiar ese hash y la URL del `.exe` a `version.json`, y publicar el Release.
 
@@ -190,7 +194,7 @@ Hasta el paso 3, ninguna caja se entera de la versión nueva. Es a propósito.
 
 ## Estado
 
-En uso. Verificaciones en verde: `typecheck`, `lint`, `test` (78 pruebas) y
+En uso. Verificaciones en verde: `typecheck`, `lint`, `test` (171 pruebas) y
 `build`, con 0 errores y 0 warnings.
 
 > **Antes de desplegar:** revisar que las migraciones de `supabase/migrations/`
