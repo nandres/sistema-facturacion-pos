@@ -11,9 +11,13 @@
     "isolatedModules": true,
     "noEmit": true,
     "types": ["node"],
-    "baseUrl": ".",
+    // Sin `baseUrl`: TypeScript 6 lo deprecó y en la 7 deja de funcionar.
+    // `paths` no lo necesita desde la 4.9 --se resuelve relativo a este
+    // archivo-- y el mismo alias está en `electron.vite.config.ts`.
+    //
+    // Ojo: hoy ningún import usa `@shared/`; todos son relativos.
     "paths": {
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["./src/shared/*"]
     }
   },
   // Todo lo que corre en Node. Si un archivo .ts del proyecto no entra en
