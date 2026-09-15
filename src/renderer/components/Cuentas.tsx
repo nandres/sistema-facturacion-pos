@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import type { Cuenta } from '../../shared/types/ventas';
 import { formatearGs } from '../utils/formatoGuarani';
 import { Aviso, BarraHerramientas, Campo, Etiqueta, Modal, Pestanas, TituloModulo, Vacio } from '../ui';

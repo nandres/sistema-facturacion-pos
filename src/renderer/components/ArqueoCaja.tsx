@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import type { Arqueo } from '../../shared/types/ventas';
 import { formatearGs } from '../utils/formatoGuarani';
 import { Aviso, Caja, Campo, Etiqueta, Fila, Vacio } from '../ui';

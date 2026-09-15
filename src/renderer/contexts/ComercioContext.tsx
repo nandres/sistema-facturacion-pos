@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode, type JSX } from 'react';
 import { COMERCIO_DEFECTO, lineaRuc, type Comercio } from '../../shared/config/comercio';
 
 /**

@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, JSX } from 'react';
 import { useComercio } from '../contexts/ComercioContext';
 
 // WebkitAppRegion es propiedad de Electron, no del tipo CSSProperties estandar.

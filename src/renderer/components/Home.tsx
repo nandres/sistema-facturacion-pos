@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { formatearGs } from '../utils/formatoGuarani';
 import { playClick } from '../utils/soundService';
 import { Caja, GrillaOps, TituloModulo, type Operacion } from '../ui';

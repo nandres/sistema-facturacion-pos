@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type JSX } from 'react';
 import type { UsuarioSesion } from '../../shared/types/ventas';
 import { useComercio } from '../contexts/ComercioContext';
 import { Aviso, Caja, Campo } from '../ui';

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type JSX } from 'react';
 import { Aviso, Caja, Campo } from '../ui';
 import { claveValida, urlValida } from '../../shared/config/conexion';
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import type { Producto } from '../../shared/types/productos';
 import type { MedioPagoManual, TipoPago, VentaInput, DatosTicket, PagoInput } from '../../shared/types/ventas';
 import { formatearGs, formatearGsConPrefijo } from '../utils/formatoGuarani';

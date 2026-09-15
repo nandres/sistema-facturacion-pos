@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import type { LineaGanancia, ResumenEnvase } from '../../shared/types/ventas';
 import { formatearGs, formatearGsConPrefijo } from '../utils/formatoGuarani';
 import { Aviso, BarraHerramientas, Campo, Pestanas, TituloModulo, Vacio } from '../ui';

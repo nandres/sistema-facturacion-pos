@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import type { ProductoAlertaStock } from '../../shared/types/ventas';
 import { formatearGs } from '../utils/formatoGuarani';
 import { Aviso, BarraHerramientas, Caja, Campo, Modal, TituloModulo, Vacio } from '../ui';

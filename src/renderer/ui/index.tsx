@@ -6,7 +6,7 @@
  * pantalla invente su propia caja, su propio botón ni su propia grilla: si algo
  * falta, se agrega acá y lo usan todas.
  */
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type JSX } from 'react';
 
 /* ─────────────────────────────────────────────────────────────────────────
    Caja con título recostado en el borde. El agrupador de toda la vida.

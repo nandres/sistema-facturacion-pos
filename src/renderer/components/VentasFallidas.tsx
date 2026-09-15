@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, type JSX } from 'react';
 import { Modal, Aviso, Vacio } from '../ui';
 import { formatearGs } from '../utils/formatoGuarani';
 import type { VentaFallida } from '../../shared/types/ventas';

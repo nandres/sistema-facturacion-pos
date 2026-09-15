@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import type { Producto } from '../../shared/types/productos';
 import { formatearGs } from '../utils/formatoGuarani';
 import { BarraHerramientas, Caja, Campo, Fila, Modal, Vacio } from '../ui';
@@ -34,7 +34,7 @@ export default function ProductEditorModal({ onCerrar, codigoInicial }: Props): 
   guardarRef.current = guardar;
   const cancelarFormRef = useRef(cancelarForm);
   cancelarFormRef.current = cancelarForm;
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (codigoInicial) {

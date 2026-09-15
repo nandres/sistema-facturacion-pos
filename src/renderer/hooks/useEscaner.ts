@@ -40,7 +40,7 @@ export function useEscaner() {
   const [dropdownAbierto, setDropdownAbierto] = useState(false);
 
   const inputEscaneoRef = useRef<HTMLInputElement>(null);
-  const timeoutBusqueda = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutBusqueda = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const refocarEscaneo = useCallback(() => {

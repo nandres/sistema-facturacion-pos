@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type JSX } from 'react';
 import Login from './components/Login';
 import ConfiguracionInicial from './components/ConfiguracionInicial';
 import VentaPOS from './components/VentaPOS';
@@ -77,7 +77,7 @@ export default function App(): JSX.Element {
   const [pendientes, setPendientes] = useState(0);
   const [fallidas, setFallidas] = useState(0);
   const [verFallidas, setVerFallidas] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const [updateInfo, setUpdateInfo] = useState<{ version: string; url: string; changelog?: string } | null>(null);
   const [descargando, setDescargando] = useState(false);
   // null mientras se comprueba: no se puede decidir entre login y

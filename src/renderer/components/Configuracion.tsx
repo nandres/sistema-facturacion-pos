@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { Aviso, BarraHerramientas, Caja, Campo, Etiqueta, Fila, TituloModulo, Vacio } from '../ui';
 import { useComercio } from '../contexts/ComercioContext';
 import { urlValida, type EstadoConexion } from '../../shared/config/conexion';
